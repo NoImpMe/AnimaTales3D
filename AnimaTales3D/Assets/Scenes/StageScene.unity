@@ -384,6 +384,7 @@ GameObject:
   - component: {fileID: 2052592160}
   - component: {fileID: 2052592159}
   - component: {fileID: 2052592162}
+  - component: {fileID: 2052592163}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -509,6 +510,25 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+--- !u!114 &2052592163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2052592158}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a36206a4ddb28c4fbe5f70f20aeed51, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraDragController
+  dragMouseButton: 1
+  planeHeight: 0
+  useBounds: 1
+  tilesRoot: {fileID: 3984405}
+  boundsPadding: 2
+  manualMinXZ: {x: 0, y: 0}
+  manualMaxXZ: {x: 50, y: 50}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

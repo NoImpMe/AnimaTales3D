@@ -60,7 +60,7 @@ public class DungeonGridManager : MonoBehaviour
     /// entryCoord가 null이면 "첫 구역"으로 취급해 center 타일이 Start가 된다.
     /// entryCoord가 있으면 그 좌표가 이 구역의 진입 지점(Empty)이 된다.
     /// </summary>
-    private void GenerateZoneAt(HexCoord center, int radius, ZoneTheme theme, HexCoord? entryCoord)
+private void GenerateZoneAt(HexCoord center, int radius, ZoneTheme theme, HexCoord? entryCoord)
     {
         var zone = new Zone
         {
@@ -99,6 +99,9 @@ public class DungeonGridManager : MonoBehaviour
                 playerToken.WarpTo(startTile.transform.position);
             }
         }
+
+        // 새 구역이 추가되어 타일 범위가 넓어졌으므로 카메라 드래그 이동 범위도 갱신.
+        CameraDragController.Instance?.RecalculateBounds();
 
         Debug.Log($"[DungeonGridManager] 구역 #{zone.zoneIndex} 생성 완료 - 테마: {theme}, 중심: {center}, 보스: {zone.bossCoord}");
     }
@@ -148,8 +151,14 @@ public class DungeonGridManager : MonoBehaviour
         return HexTileType.Empty;
     }
 
-    private void SpawnTile(HexCoord coord, HexTileType type, ZoneTheme theme, Zone zone)
+private void SpawnTile(HexCoord coord, HexTileType type, ZoneTheme theme, Zone zone)
     {
+        if (tiles.ContainsKey(coord))
+        {
+            Debug.LogWarning($"[DungeonGridManager] {coord} 위치에 이미 타일이 존재합니다. 중복 생성을 건너뜁니다.");
+            return;
+        }
+
         Vector3 worldPos = coord.ToWorldPosition(hexSize);
         var tile = Instantiate(hexTilePrefab, worldPos, Quaternion.identity, transform);
         tile.name = $"HexTile_{coord.q}_{coord.r}_{theme}";
@@ -241,7 +250,7 @@ public class DungeonGridManager : MonoBehaviour
     /// 이렇게 하면 보스 타일의 바로 옆 칸(같은 방향으로 1칸)이 자동으로 다음 구역의 경계 타일이 되어,
     /// 두 구역이 겹치지 않으면서도 자연스럽게 이어진다. (수학적 증명은 README 참고)
     /// </summary>
-    private void HandleBossCleared(HexTile bossTile)
+private void HandleBossCleared(HexTile bossTile)
     {
         Zone currentZone = FindZoneContaining(bossTile.coord);
         if (currentZone == null)
@@ -252,11 +261,11 @@ public class DungeonGridManager : MonoBehaviour
 
         currentZone.bossCleared = true;
 
-        var directions = HexCoord.Directions;
-        HexCoord expandDirection = directions[Random.Range(0, directions.Length)];
-
-        HexCoord entryCoord = bossTile.coord + expandDirection;
-        HexCoord newCenter = bossTile.coord + expandDirection * (currentZone.radius + 1);
+        if (!TryFindNonOverlappingZonePlacement(bossTile.coord, currentZone, out HexCoord newCenter, out HexCoord entryCoord))
+        {
+            Debug.LogError("[DungeonGridManager] 기존 구역과 겹치지 않는 새 구역 위치를 찾지 못했습니다. 구역 생성을 중단합니다.");
+            return;
+        }
 
         ZoneTheme nextTheme = ZoneThemeUtility.GetRandomTheme(exclude: currentZone.theme);
 
@@ -264,6 +273,104 @@ public class DungeonGridManager : MonoBehaviour
 
         GenerateZoneAt(newCenter, currentZone.radius, nextTheme, entryCoord);
     }
+
+/// <summary>
+    /// 보스 타일을 기준으로 기존에 생성된 모든 구역과 절대 겹치지 않는 다음 구역의 중심 좌표를 탐색한다.
+    ///
+    /// 1차 시도: 보스가 바라보는 방향 기준 좌우 60도 이내(같은 방향 포함 3방향)로만 확장.
+    /// 이 범위는 직전 구역과 수학적으로 겹치지 않음이 보장되는 방향이라 대부분 여기서 바로 성공한다.
+    /// 혹시 다른 구역과 우연히 겹치는 경우를 대비해, 실패 시 gap을 늘리고 6방향 전체로 넓혀가며
+    /// "반드시" 겹치지 않는 자리를 찾을 때까지 재시도한다.
+    /// </summary>
+    private bool TryFindNonOverlappingZonePlacement(HexCoord bossCoord, Zone currentZone, out HexCoord newCenter, out HexCoord entryCoord)
+    {
+        var directions = HexCoord.Directions;
+        int bossDirIndex = FindDirectionIndex(currentZone.center, bossCoord, currentZone.radius);
+
+        List<int> candidateIndices = new List<int>();
+        if (bossDirIndex >= 0)
+        {
+            candidateIndices.Add(bossDirIndex);
+            candidateIndices.Add((bossDirIndex + 1) % 6);
+            candidateIndices.Add((bossDirIndex + 5) % 6);
+        }
+        else
+        {
+            for (int i = 0; i < 6; i++) candidateIndices.Add(i);
+        }
+        ShuffleInPlace(candidateIndices);
+
+        const int maxGapExtension = 6;
+        for (int gap = currentZone.radius + 1; gap <= currentZone.radius + 1 + maxGapExtension; gap++)
+        {
+            foreach (var dirIndex in candidateIndices)
+            {
+                HexCoord dir = directions[dirIndex];
+                HexCoord candidateCenter = bossCoord + dir * gap;
+
+                if (!ZoneRangeOverlaps(candidateCenter, currentZone.radius))
+                {
+                    newCenter = candidateCenter;
+                    entryCoord = bossCoord + dir;
+                    return true;
+                }
+            }
+
+            // 선호 방향(±60도)에서 자리를 못 찾으면 이후로는 6방향 전체로 넓혀서 재시도.
+            if (candidateIndices.Count < 6)
+            {
+                candidateIndices.Clear();
+                for (int i = 0; i < 6; i++) candidateIndices.Add(i);
+                ShuffleInPlace(candidateIndices);
+            }
+        }
+
+        newCenter = default;
+        entryCoord = default;
+        return false;
+    }
+
+    /// <summary>
+    /// candidateCenter를 중심으로 radius 범위의 타일들이 이미 존재하는(다른 구역의) 타일과 하나라도 겹치는지 검사한다.
+    /// </summary>
+    private bool ZoneRangeOverlaps(HexCoord candidateCenter, int radius)
+    {
+        foreach (var coord in HexCoord.GetRange(candidateCenter, radius))
+        {
+            if (tiles.ContainsKey(coord)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// target이 center로부터 "정확히 radius칸 만큼 6방향 중 하나"로 떨어져 있을 때, 그 방향의 인덱스를 반환한다.
+    /// 해당하지 않으면 -1.
+    /// </summary>
+    private int FindDirectionIndex(HexCoord center, HexCoord target, int radius)
+    {
+        if (radius == 0) return -1;
+
+        HexCoord diff = target - center;
+        if (diff.q % radius != 0 || diff.r % radius != 0) return -1;
+
+        HexCoord unit = new HexCoord(diff.q / radius, diff.r / radius);
+        var directions = HexCoord.Directions;
+        for (int i = 0; i < directions.Length; i++)
+        {
+            if (directions[i] == unit) return i;
+        }
+        return -1;
+    }
+
+    private static void ShuffleInPlace(List<int> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[i], list[j]);
+        }
+    }
+
 
     private Zone FindZoneContaining(HexCoord coord)
     {
