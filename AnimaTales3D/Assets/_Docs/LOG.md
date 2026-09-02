@@ -66,3 +66,17 @@
 - `git diff --numstat` → `DungeonGridManager.cs`(14+/9-), `StageScene.unity`(1+/4-)만 실질 변경. 체크포인트 커밋에서 `Settings/`·`ProjectSettings/`의 줄바꿈(CRLF) 표시 노이즈가 이미 정리돼 이번엔 해당 파일들이 아예 status에 나타나지 않음
 ### 실패와 수정
 - 없음. (참고: 검증용 `execute_code`에서 `EditorUtility.InstanceIDToObject`가 이 Unity 버전에서 obsolete로 컴파일 에러 처리되어 `EditorUtility.EntityIdToObject`로 교체함 — 게임 코드가 아닌 조사용 스크립트 한정 이슈라 FAIL.md에는 기록하지 않음)
+
+## [설계] 전투 씬 포팅 방안 — 2026-09-03 01:00
+### 프롬프트
+"전투씬 포팅계획 논의하자" → CONVERSION_SPEC.md 7절 로드맵 3번(전투 씬 포팅) 착수 전, 작업 순서/구조에 대한 방안을 논의.
+### 조작 내역 (제시한 방안 요약)
+- 조사: `manage_packages(list_packages)`로 Cinemachine/BGDatabase/DOTween 등이 AnimaTales3D 프로젝트에 설치돼 있지 않음을 확인(48개 패키지 중 대부분 Unity 기본 모듈). `activeInputHandler: 2`(Both)로 레거시 Input과 신규 Input System이 둘 다 동작 가능함도 확인. Assets 전체에 Battle 관련 스크립트/씬이 아직 하나도 없음(StageScene/TitleScene만 존재)을 확인
+- 방안 1(레이어 분리 우선, 추천): TurnManager/BattleState/Buff·BuffManager/데미지 계산/EnemyActions AI 등 순수 로직을 MonoBehaviour 밖 C#으로 먼저 포팅 + 2D 원본과 동일 시드에서 동일 결과가 나오는지 비교하는 회귀 테스트를 붙인 뒤, 스폰/카메라/UI 같은 프레젠테이션 레이어를 이후 커밋들로 순차 구현. HexCoord/DungeonZonePlanner 때 이미 쓴 패턴과 일치, 지침의 [전환] 회귀 검증 요구와도 부합
+- 방안 2(수직 슬라이스 우선): 아군 1 vs 적 1, 기본 공격만 되는 최소 전투 루프를 로직+스폰+카메라+UI까지 세로로 관통해 빠르게 프로토타입 확인 후 스킬/버프/AI/다중 유닛을 점증 추가. 가시적 피드백은 빠르나 초기 코드가 지침의 "순수 로직 먼저" 원칙과 부분적으로 충돌할 여지 있어, 데미지 계산 등 핵심 계산만이라도 pure 클래스로 먼저 뽑고 시작하는 완화책 필요
+- 방안 3(God Object 그대로 이식 후 리팩터): `BattleManager`(1,650줄+)를 구조 그대로 우선 이식해 빠르게 동작시키고 이후 별도 [수정] 작업으로 점진적 분리. 이식 속도는 가장 빠르지만, 기존 로드맵 1·2번에서 이미 겪은 "지침 위반 상태로 먼저 구현·커밋 후 나중에 보강" 패턴이 반복될 위험
+- 별도 결정 필요 항목(패키지 추가는 사람만 가능하므로 승인 필요): (a) 카메라 연출 - Cinemachine 재도입 여부(승인 필요) vs 직접 코루틴/Lerp 구현(패키지 불필요, 기본값 제안) (b) 데이터 모델 - BGDatabase 재도입 여부(승인 필요) vs 순수 ScriptableObject/JSON으로 대체(기본값 제안) (c) 씬 구조 - 별도 BattleScene 전환 vs 같은 씬 내 전환 (d) `GameObject.Find` 47곳+ - 포팅 시 `[SerializeField]`/싱글톤 참조로 교체할지 여부
+### 검증
+해당 없음 ([설계]는 실행하지 않음)
+### 실패와 수정
+없음
