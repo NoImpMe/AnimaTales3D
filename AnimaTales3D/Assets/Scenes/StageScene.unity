@@ -150,10 +150,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGridManager
   hexTilePrefab: {fileID: 7376942789132445852, guid: 0ede45ed977507d46a21f73afceff0fa, type: 3}
   playerToken: {fileID: 500451981}
-  hexSize: 1.2
-  zoneRadius: 3
-  wallChance: 0.25
-  battleChance: 0.45
+  config: {fileID: 11400000, guid: 2d0d507e16c53e244b1dc3d39dc3f3ea, type: 2}
 --- !u!4 &3984405
 Transform:
   m_ObjectHideFlags: 0

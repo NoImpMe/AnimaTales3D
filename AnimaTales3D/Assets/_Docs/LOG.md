@@ -47,3 +47,22 @@
 ### 실패와 수정
 - 최초 테스트 어셈블리가 `Assembly-CSharp`을 `references`에 문자열로 넣었으나 CS0246 에러 10건 발생 → Unity의 암묵적 Assembly-CSharp은 커스텀 asmdef보다 나중에 컴파일되므로 asmdef에서 참조 불가 → 게임 스크립트 쪽에 `AnimaTales3D.Runtime.asmdef`를 새로 만들어 명시적 어셈블리로 분리하고, 테스트 어셈블리가 그걸 참조하도록 수정해 해결
 - `manage_script`의 `create` 액션은 기존 파일이 있으면 실패("Use 'update' action")하지만 `update` 액션은 실제로 노출돼 있지 않음(enum: create/read/delete) → `delete` 후 `create`로 재생성. `.meta`(스크립트 GUID)는 delete 과정에서 지워지지 않고 그대로 남아있어 씬 참조 안전함을 확인함 — 이 패턴을 FAIL.md에 남겨둠
+
+## [수정] wallChance/battleChance/hexSize/zoneRadius를 ScriptableObject Config로 이전 — 2026-09-03 00:20
+### 프롬프트
+"이어서 진행하도록" → CONVERSION_SPEC.md 7절 로드맵 2번: DungeonGridManager의 [SerializeField] 숫자 필드(hexSize/zoneRadius/wallChance/battleChance)가 ScriptableObject Config가 아니라 MonoBehaviour에 직접 있던 지침 위반 상태를 해소.
+### 조작 내역
+- `Assets/Scripts/StageScripts/DungeonGenerationConfig.cs` 신규 생성: `ScriptableObject` 서브클래스, `hexSize`/`zoneRadius`/`wallChance`/`battleChance` 4개 필드 소유. 기본값은 리팩터링 전 씬 인스펙터의 실제 오버라이드 값(1.2/3/0.25/0.45)과 동일하게 설정해 생성 결과가 달라지지 않도록 함
+- `Assets/Scripts/StageScripts/DungeonGridManager.cs` 수정: 4개 `[SerializeField]` 숫자 필드 제거, `[SerializeField] private DungeonGenerationConfig config` 하나로 대체. `Awake`/`Start`/`GenerateZoneAt`/`SpawnTile`에서 `hexSize`/`zoneRadius`/`wallChance`/`battleChance` 참조를 전부 `config.*`로 교체. `config == null`일 때 `Debug.LogError` 후 조기 반환하는 방어 코드 추가(신규 동작이지만 안전을 위한 최소 추가)
+- `Assets/Tests/EditMode/DungeonGenerationConfigTests.cs` 신규 생성: Config 기본값이 이전 씬 오버라이드 값과 일치하는지, hexSize>0/zoneRadius>=1/wallChance·battleChance가 [0,1] 범위이고 합이 1을 넘지 않는지 검증하는 테스트 4개
+- `manage_scriptable_object(create)`로 `Assets/Configs/DungeonGenerationConfig.asset` 에셋 인스턴스 생성 후 값이 1.2/3/0.25/0.45인지 `execute_code`로 직접 로드해 재확인
+- `manage_components(set_property)`로 씬의 `DungeonGridManager` 컴포넌트(instanceID 91726)의 `config` 필드에 위 에셋을 연결, `SerializedObject`로 참조가 정상 연결됐는지 재확인
+- `refresh_unity(compile=request, mode=force)` 후 컴파일 완료 대기
+- `manage_scene(action=save)`로 StageScene 명시적 저장
+### 검증
+- `read_console(types=[error,warning])` → 스크립트 수정 직후 0건, 씬 저장 후 재확인 0건
+- `run_tests(mode=EditMode, assembly_names=[AnimaTales3D.EditModeTests])` → 30/30 통과 (기존 26개 + 신규 Config 테스트 4개, 0.47초)
+- `git diff -- Assets/Scenes/StageScene.unity` → 씬 diff가 정확히 `hexSize/zoneRadius/wallChance/battleChance` 4줄 제거 + `config` 참조 1줄 추가뿐임을 확인 (hexTilePrefab/playerToken 등 다른 참조는 그대로)
+- `git diff --numstat` → `DungeonGridManager.cs`(14+/9-), `StageScene.unity`(1+/4-)만 실질 변경. 체크포인트 커밋에서 `Settings/`·`ProjectSettings/`의 줄바꿈(CRLF) 표시 노이즈가 이미 정리돼 이번엔 해당 파일들이 아예 status에 나타나지 않음
+### 실패와 수정
+- 없음. (참고: 검증용 `execute_code`에서 `EditorUtility.InstanceIDToObject`가 이 Unity 버전에서 obsolete로 컴파일 에러 처리되어 `EditorUtility.EntityIdToObject`로 교체함 — 게임 코드가 아닌 조사용 스크립트 한정 이슈라 FAIL.md에는 기록하지 않음)

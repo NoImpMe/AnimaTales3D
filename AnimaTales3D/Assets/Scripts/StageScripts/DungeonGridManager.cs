@@ -13,6 +13,8 @@ using UnityEngine;
 ///
 /// 좌표/배치 계산의 순수 로직(방향 선택, 타일 타입 결정, 비중첩 구역 탐색 등)은
 /// <see cref="DungeonZonePlanner"/>로 분리되어 EditMode 테스트가 가능하다 (2026-09-02 리팩터링).
+/// 생성에 쓰이는 모든 수치(hexSize/zoneRadius/wallChance/battleChance)는
+/// <see cref="DungeonGenerationConfig"/> ScriptableObject가 소유한다 (2026-09-03 리팩터링).
 /// </summary>
 public class DungeonGridManager : MonoBehaviour
 {
@@ -22,11 +24,8 @@ public class DungeonGridManager : MonoBehaviour
     [SerializeField] private HexTile hexTilePrefab;
     [SerializeField] private PlayerToken playerToken;
 
-    [Header("생성 설정")]
-    [SerializeField] private float hexSize = 1.2f;
-    [SerializeField] private int zoneRadius = 3;
-    [SerializeField, Range(0f, 1f)] private float wallChance = 0.2f;
-    [SerializeField, Range(0f, 1f)] private float battleChance = 0.5f;
+    [Header("생성 설정 (수치는 이 Config가 전부 소유)")]
+    [SerializeField] private DungeonGenerationConfig config;
 
     // 전역 타일 저장소 (모든 구역의 타일이 같은 좌표 공간에 함께 들어간다)
     private readonly Dictionary<HexCoord, HexTile> tiles = new Dictionary<HexCoord, HexTile>();
@@ -50,13 +49,19 @@ public class DungeonGridManager : MonoBehaviour
             return;
         }
 
-        planner = new DungeonZonePlanner(zoneRadius);
+        if (config == null)
+        {
+            Debug.LogError("[DungeonGridManager] DungeonGenerationConfig가 연결되지 않았습니다. 인스펙터에서 config를 지정하세요.");
+            return;
+        }
+
+        planner = new DungeonZonePlanner(config.zoneRadius);
     }
 
     private void Start()
     {
         ZoneTheme firstTheme = ZoneThemeUtility.GetRandomTheme();
-        GenerateZoneAt(new HexCoord(0, 0), zoneRadius, firstTheme, entryCoord: null);
+        GenerateZoneAt(new HexCoord(0, 0), config.zoneRadius, firstTheme, entryCoord: null);
     }
 
     // ------------------------------------------------------------------
@@ -87,7 +92,7 @@ public class DungeonGridManager : MonoBehaviour
         var coordsInZone = HexCoord.GetRange(center, radius);
         foreach (var coord in coordsInZone)
         {
-            HexTileType type = planner.DecideTileType(coord, center, zone.bossCoord, entryCoord, wallChance, battleChance);
+            HexTileType type = planner.DecideTileType(coord, center, zone.bossCoord, entryCoord, config.wallChance, config.battleChance);
             SpawnTile(coord, type, theme, zone);
         }
 
@@ -122,7 +127,7 @@ public class DungeonGridManager : MonoBehaviour
             return;
         }
 
-        Vector3 worldPos = coord.ToWorldPosition(hexSize);
+        Vector3 worldPos = coord.ToWorldPosition(config.hexSize);
         var tile = Instantiate(hexTilePrefab, worldPos, Quaternion.identity, transform);
         tile.name = $"HexTile_{coord.q}_{coord.r}_{theme}";
         tile.Initialize(coord, type, theme);
