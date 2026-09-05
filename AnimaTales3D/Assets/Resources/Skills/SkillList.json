@@ -1,0 +1,10 @@
+[
+  { "name": "FelixBuff", "Type": "SingleBuff", "Weight": 1.77 ,"Affect":["strengthup"], "Turn" : 3},
+  { "name": "AmareHeal", "Type": "SingleHeal", "Weight": 0.8 },
+  { "name": "AmareShield", "Type": "SingleShield", "Weight": 0.85 },
+  { "name": "AmareWideHeal", "Type": "MultiHeal", "Weight": 0.66},
+  { "name": "HavetSkill", "Type": "SingleAttack", "Weight": 1.5 },
+  { "name": "LacrimaWideSkill", "Type": "MultiAttack", "Weight": 0.55 },
+  { "name": "PhobiaDebuff", "Type": "SingleDebuff","Affect":["defensedown"], "Weight": 1.88, "Turn" :  3 }
+  
+]

@@ -248,3 +248,21 @@
 - `git status --short` → 씬/프리팹 변경 없이 신규 스크립트 6개 + 신규 테스트 4개 파일만 추가됨을 확인
 ### 실패와 수정
 - 없음
+
+## [전환] 스킬 weight를 JSON(SkillList.json) 기반으로 통일 + 아군/적 데미지·회복 비대칭 제거 — 2026-09-05 19:40
+### 프롬프트
+"스킬을 원래와 같이 Json으로 관리하고 모든 스킬의 weight 배율은 그 곳에서 관리한다." (LOG #13에서 [전환] 작업 중 발견해 제안했던 게임적 개선안 중 1번, 사람 승인)
+### 조작 내역
+- 2D 원본 `C:\Users\Minwoo\Desktop\Anima\AnimaTales2D\Assets\Resources\Minwoo\SkillList.json`(7개 스킬 정의: FelixBuff/AmareHeal/AmareShield/AmareWideHeal/HavetSkill/LacrimaWideSkill/PhobiaDebuff)을 그대로 `Assets/Resources/Skills/SkillList.json`으로 복사
+- `Assets/Scripts/BattleScripts/SkillData.cs` 신규 생성: 원본과 동일 필드명(`name`/`Type`/`Weight`/`Affect`/`Turn`, 소문자 `name` 포함) — `JsonUtility`가 대소문자까지 정확히 일치해야 채워주므로 임의로 PascalCase화하지 않음
+- `Assets/Scripts/BattleScripts/SkillDatabase.cs` 신규 생성: `JsonUtility.FromJson`은 최상위가 배열인 JSON을 못 읽어 `{"skills": ...}` 래퍼로 감싸는 표준 우회 사용. 원본은 Newtonsoft(`JsonConvert`)를 썼지만 이 프로젝트엔 Newtonsoft 패키지가 없고 패키지 추가는 사람 승인이 필요해, 대신 Unity 내장 `JsonUtility`로 구현(안전하게 추론 가능한 구현 세부로 판단해 별도 질의 없이 진행)
+- `Assets/Scripts/BattleScripts/BattleMath.cs` 수정: `CalcAllySkillDamage`+`CalcEnemySkillDamage`(적 버전은 원본에서 weight 미적용)를 `CalcSkillDamage(attackerDamage, defenderDefense, weight, randomRoll)` 하나로 통합(weight 항상 곱함). `CalcAllyHealAmount`+`CalcEnemyHealAmount`(적 버전은 원본에서 weight 대신 고정 1.13 곱함)를 `CalcHealAmount(healerDamage, targetMaxStamina, weight, randomRoll)` 하나로 통합(weight 항상 사용). `CalcShieldAmount`/`CalcBuffRatio`/`CalcDebuffRatio`는 원래도 대칭이라 변경 없음. 클래스 doc 주석에 이 변경이 LOG #13에서 보존했던 원본 비대칭을 이번 LOG #14에서 사람 승인으로 제거한 것임을 명시
+- `Assets/Tests/EditMode/BattleMathTests.cs` 수정: 이제 없는 `CalcAllySkillDamage`/`CalcEnemySkillDamage`/`CalcAllyHealAmount`/`CalcEnemyHealAmount` 호출부를 `CalcSkillDamage`/`CalcHealAmount` 호출로 교체, 비대칭 전용 테스트(`CalcEnemySkillDamage_IgnoresWeightLikeOriginal`, `CalcEnemyHealAmount_UsesFixedMultiplierLikeOriginal`)는 더 이상 성립하지 않아 제거
+- `Assets/Tests/EditMode/SkillDatabaseTests.cs` 신규 생성: 실제 이식된 7개 스킬 JSON을 테스트 내 상수로 재현해 `ParseJsonArray`가 전체 개수·`FelixBuff`(Weight 1.77/Turn 3/Affect ["strengthup"])·`PhobiaDebuff`(Weight 1.88/Turn 3/Affect ["defensedown"])·`Affect`/`Turn` 없는 스킬(`AmareHeal`)·존재하지 않는 이름 조회(null) 케이스 검증
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → 1차 58개 중 1개 실패(`SkillDatabaseTests.ParseJsonArray_SkillWithoutAffectOrTurn_LeavesThemDefault`: `Affect`가 `null`이 아니라 빈 리스트로 나옴) → 테스트 기대값을 "null 또는 빈 리스트"로 수정 → 재실행 **58/58 전부 통과**(기존 55 + 신규 SkillDatabaseTests 5개, 신규 1개 실패 수정 반영 시 최종 net +3 순수 통과)
+- `unity command console --level error` → 최신 컴파일 에러 없음(과거 시행착오 중 발생했던 CS0117 에러들은 재컴파일로 이미 해소된 과거 로그였음을 seq 확인)
+- 씬/프리팹을 건드리지 않는 순수 C#/JSON 작업이라 `save_scene` 대상 없음
+### 실패와 수정
+- `SkillDatabaseTests`에서 `Affect`/`Turn`이 JSON에 없는 스킬(`AmareHeal`)의 `Affect` 필드가 `null`일 것으로 기대했으나 실제로는 `JsonUtility`가 빈 `List<string>`으로 채움 → 테스트를 "null 또는 Count==0 허용"으로 완화해 실제 동작에 맞춤 (버그 아님, JsonUtility의 알려진 동작)

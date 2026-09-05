@@ -4,36 +4,25 @@
 /// randomRoll 매개변수로 받는다(호출부에서 Random.Range(0.95f, 1.11f)를 넘겨주면 원본과 동일하게 동작
 /// — 회귀 테스트가 가능하도록 순수 함수로 분리).
 ///
-/// 원본에 존재하던 아군/적 간 비대칭(버그로 보이는 동작 포함)은 고치지 않고 그대로 보존했다:
-/// - 적 스킬 데미지는 weight를 받고도 곱하지 않음(EnemyActions.CalcSkillDamage)
-/// - 적 회복량은 weight 대신 고정값 1.13을 곱함(EnemyActions.CalcHealAmount)
+/// 원본은 아군/적 스킬 데미지·회복량 공식에 비대칭(적 스킬은 weight 미적용, 적 회복은 weight 대신
+/// 고정값 1.13)이 있었는데, 이는 버그로 보여 사람 확인 후 통일했다(2026-09-05, LOG #14) —
+/// 모든 weight는 이제 <see cref="SkillData.Weight"/>(SkillList.json)에서 오는 값 하나로 아군/적
+/// 구분 없이 동일하게 적용된다.
 /// </summary>
 public static class BattleMath
 {
-    /// <summary>기본 공격 데미지. 아군/적 버전 모두 동일한 공식.</summary>
+    /// <summary>기본 공격 데미지(스킬 아님). 아군/적 버전 모두 동일한 공식.</summary>
     public static float CalcAttackDamage(float attackerDamage, float defenderDefense, float randomRoll)
         => attackerDamage * (1000f / (1000f + defenderDefense)) * randomRoll;
 
-    /// <summary>아군 스킬 데미지 — weight 배율 포함.</summary>
-    public static float CalcAllySkillDamage(float attackerDamage, float defenderDefense, float weight, float randomRoll)
+    /// <summary>스킬 데미지. weight는 항상 SkillData.Weight에서 온 값을 곱한다(아군/적 동일).</summary>
+    public static float CalcSkillDamage(float attackerDamage, float defenderDefense, float weight, float randomRoll)
         => attackerDamage * (900f / (900f + defenderDefense)) * randomRoll * weight;
 
-    /// <summary>적 스킬 데미지 — 원본 그대로 weight를 곱하지 않는다.</summary>
-    public static float CalcEnemySkillDamage(float attackerDamage, float defenderDefense, float randomRoll)
-        => attackerDamage * (900f / (900f + defenderDefense)) * randomRoll;
-
-    /// <summary>아군 회복량. 최대 스태미나의 40%로 상한.</summary>
-    public static float CalcAllyHealAmount(float healerDamage, float targetMaxStamina, float weight, float randomRoll)
+    /// <summary>회복량. weight는 항상 SkillData.Weight에서 온 값(아군/적 동일). 최대 스태미나의 40%로 상한.</summary>
+    public static float CalcHealAmount(float healerDamage, float targetMaxStamina, float weight, float randomRoll)
     {
         float a = healerDamage * randomRoll * weight;
-        float b = targetMaxStamina * 0.4f;
-        return a >= b ? b : a;
-    }
-
-    /// <summary>적 회복량 — 원본 그대로 weight 대신 고정값 1.13을 곱한다.</summary>
-    public static float CalcEnemyHealAmount(float healerDamage, float targetMaxStamina, float randomRoll)
-    {
-        float a = healerDamage * randomRoll * 1.13f;
         float b = targetMaxStamina * 0.4f;
         return a >= b ? b : a;
     }

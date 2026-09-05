@@ -47,9 +47,13 @@ Axial(q, r) 좌표계를 새로 도입했다 (`CONVERSION_SPEC.md` 이전 버전
 - [해결됨, LOG #2] `HexCoord`/`DungeonGridManager`의 순수 로직은 `DungeonZonePlanner`로 분리되어 EditMode 테스트 26개로 커버됨.
 - [해결됨, LOG #3] `wallChance`/`battleChance`/`hexSize`/`zoneRadius`는 `DungeonGenerationConfig` ScriptableObject로 이전됨 (테스트 4개 포함, 총 EditMode 테스트 30개).
 - **전투 시스템(원본 BattleScript 35개 스크립트) 포팅 진행 중** — `DungeonGridManager.EnterBattle()`은 아직 임시로 `OnBattleWon`을 즉시 호출하는 스텁 상태.
-  - [완료, LOG #13] 순수 로직 레이어: `TurnManager<TUnit>`/`BattleState`/`Buff<TUnit>`·`BuffManager<TUnit>`/`BattleMath`(데미지·회복·실드·버프 공식)/`EnemyAI`(가중 랜덤 행동 결정) — 2D 원본과 동일 수식으로 회귀 테스트 25개 통과. 원본의 아군/적 간 비대칭(버그성 동작 포함: 적 스킬 데미지는 weight 미적용, 적 회복량은 weight 대신 고정 1.13 곱함, TurnManager.OnLevelUpTurnChanged의 인덱스 기반 제거)은 그대로 보존
-  - [미착수] 실제 유닛 데이터 모델(2D 원본 AnimaDataSO/SkillData에 대응, BGDatabase 대신 순수 ScriptableObject/JSON으로 재도입하기로 결정됨) — `IBattleUnit` 인터페이스만 존재, 구현체 없음
-  - [미착수] MonoBehaviour/씬 연결: 스폰, 카메라 연출(Cinemachine 재도입 승인됨), UI(HP바/파서바 등 world-to-screen 방식), 별도 BattleScene 전환(구조 결정됨)
+  - [완료, LOG #13] 순수 로직 레이어: `TurnManager<TUnit>`/`BattleState`/`Buff<TUnit>`·`BuffManager<TUnit>`/`BattleMath`(데미지·회복·실드·버프 공식)/`EnemyAI`(가중 랜덤 행동 결정) — 2D 원본과 동일 수식으로 회귀 테스트 25개 통과.
+  - [수정 완료, LOG #14] `BattleMath`의 아군/적 비대칭(적 스킬 데미지 weight 미적용, 적 회복량 고정 1.13배) 제거 — 사람 지시("스킬을 원래와 같이 Json으로 관리하고 모든 스킬의 weight 배율은 그 곳에서 관리한다")로 확정. `CalcAllySkillDamage`/`CalcEnemySkillDamage` → `CalcSkillDamage(attackerDamage, defenderDefense, weight, randomRoll)` 하나로, `CalcAllyHealAmount`/`CalcEnemyHealAmount` → `CalcHealAmount(healerDamage, targetMaxStamina, weight, randomRoll)` 하나로 통합. weight는 항상 `SkillData.Weight`(`Resources/Skills/SkillList.json`, 2D 원본과 동일 7개 스킬)에서 온 값. `SkillData`/`SkillDatabase`(JsonUtility 기반, Newtonsoft 미사용) 신규 추가, 회귀 테스트 5개 포함 총 58개 통과.
+  - [미착수] 실제 유닛 데이터 모델(2D 원본 AnimaDataSO에 대응, BGDatabase 대신 순수 ScriptableObject/JSON으로 재도입하기로 결정됨) — `IBattleUnit` 인터페이스만 존재, 구현체 없음. `SkillData`/`SkillDatabase`는 이번 작업으로 이미 준비됨.
+  - [미착수] 나머지 5개 테마(Amare/Felix/Havet/Lacrima/Phobia) 적 AI를 상황 인지형으로 개선 — 사람 지시 대기 중, 각 테마 실제 스킬 구성(SkillList.json 기준: Amare=회복/실드, Felix=버프, Havet=단일공격, Lacrima=광역공격, Phobia=디버프)을 설계 근거로 사용할 것
+  - [미착수] 턴 순서 시각화: 좌우로 회전하는 회전체("회전체") UI로 표시 — 사람 지시 확정, 프레젠테이션 레이어 착수 시 구현
+  - [확정, 미착수] 전투 구도 규칙: 최대 3:3, 최소 1:1, 좌측 아군/우측 적군 배치 — 2D 원본 `AllyBattleSetting`/`EnemyBattleSetting`에 대응, MonoBehaviour/씬 연결(스폰) 단계에서 반영할 것
+  - [미착수] MonoBehaviour/씬 연결: 스폰(위 구도 규칙 적용), 카메라 연출(Cinemachine 재도입 승인됨), UI(HP바/파서바 등 world-to-screen 방식 + 턴순서 회전체), 별도 BattleScene 전환(구조 결정됨)
 
 ## 7. 다음 작업 순서 (제안, 확정 아님)
 1. ~~`HexCoord`/`DungeonGridManager`에 EditMode 테스트 보강 + LOG.md에 소급 기록~~ — 완료 (LOG #2)

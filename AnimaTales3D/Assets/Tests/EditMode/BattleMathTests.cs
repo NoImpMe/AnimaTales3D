@@ -22,52 +22,31 @@ public class BattleMathTests
     }
 
     [Test]
-    public void CalcAllySkillDamage_MatchesOriginalFormula()
+    public void CalcSkillDamage_MatchesOriginalFormula()
     {
         foreach (var roll in RandomRollSamples)
         {
-            // 원본(AnimaActions.CalcSkillDamage): damage * (900/(900+Defense)) * roll * weight
+            // damage * (900/(900+Defense)) * roll * weight — weight는 SkillList.json 유래, 아군/적 동일 적용
             float expected = 120f * (900f / (900f + 40f)) * roll * 1.5f;
-            float actual = BattleMath.CalcAllySkillDamage(120f, 40f, 1.5f, roll);
+            float actual = BattleMath.CalcSkillDamage(120f, 40f, 1.5f, roll);
             Assert.AreEqual(expected, actual, 0.0001f);
         }
     }
 
     [Test]
-    public void CalcEnemySkillDamage_IgnoresWeightLikeOriginal()
-    {
-        foreach (var roll in RandomRollSamples)
-        {
-            // 원본(EnemyActions.CalcSkillDamage)은 weight 매개변수를 받지만 리턴식에 쓰지 않는다.
-            float expected = 120f * (900f / (900f + 40f)) * roll;
-            float actual = BattleMath.CalcEnemySkillDamage(120f, 40f, roll);
-            Assert.AreEqual(expected, actual, 0.0001f);
-        }
-    }
-
-    [Test]
-    public void CalcAllyHealAmount_CappedAt40PercentMaxStamina()
+    public void CalcHealAmount_CappedAt40PercentMaxStamina()
     {
         // a = damage*roll*weight = 100*1.11*2 = 222, b = maxStamina*0.4 = 500*0.4 = 200 → b가 더 작음
-        float result = BattleMath.CalcAllyHealAmount(100f, 500f, 2f, 1.11f);
+        float result = BattleMath.CalcHealAmount(100f, 500f, 2f, 1.11f);
         Assert.AreEqual(200f, result, 0.0001f);
     }
 
     [Test]
-    public void CalcAllyHealAmount_BelowCap_ReturnsRawAmount()
+    public void CalcHealAmount_BelowCap_ReturnsRawAmount()
     {
         // a = 50*1.0*1 = 50, b = 1000*0.4 = 400 → a가 더 작음
-        float result = BattleMath.CalcAllyHealAmount(50f, 1000f, 1f, 1.0f);
+        float result = BattleMath.CalcHealAmount(50f, 1000f, 1f, 1.0f);
         Assert.AreEqual(50f, result, 0.0001f);
-    }
-
-    [Test]
-    public void CalcEnemyHealAmount_UsesFixedMultiplierLikeOriginal()
-    {
-        // 원본(EnemyActions.CalcHealAmount)은 weight 대신 고정값 1.13f를 곱한다.
-        float expected = 80f * 1.0f * 1.13f; // < maxStamina*0.4 이므로 캡에 안 걸림
-        float result = BattleMath.CalcEnemyHealAmount(80f, 1000f, 1.0f);
-        Assert.AreEqual(expected, result, 0.0001f);
     }
 
     [Test]
