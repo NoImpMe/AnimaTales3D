@@ -56,4 +56,99 @@ public class EnemyAITests
         // roll=3.5 → 누적 3.0 초과, 누적 4.0 이하이므로 UseSkill
         Assert.AreEqual(BattleActionType.UseSkill, EnemyAI.DecideAction(weights, "Phobia", 3.5f));
     }
+
+    private static float SkillWeight(List<WeightedAction> weights) =>
+        weights.Find(w => w.ActionType == BattleActionType.UseSkill).Weight;
+
+    private static float AttackWeight(List<WeightedAction> weights) =>
+        weights.Find(w => w.ActionType == BattleActionType.Attack).Weight;
+
+    [Test]
+    public void ApplySituationalModifiers_Amare_AllyLowHp_BoostsSkillWeight()
+    {
+        var situation = new BattleSituation(allyLowestHpRatio: 0.3f);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Amare", EqualWeights, situation);
+        Assert.AreEqual(2.5f, SkillWeight(result), 0.0001f);
+        Assert.AreEqual(1f, AttackWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Amare_AllyHealthy_SuppressesSkillWeight()
+    {
+        var situation = new BattleSituation(allyLowestHpRatio: 1f);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Amare", EqualWeights, situation);
+        Assert.AreEqual(0.4f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Felix_NotYetBuffed_BoostsSkillWeight()
+    {
+        var situation = new BattleSituation(selfTeamBuffed: false);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Felix", EqualWeights, situation);
+        Assert.AreEqual(2.5f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Felix_AlreadyBuffed_SuppressesSkillWeight()
+    {
+        var situation = new BattleSituation(selfTeamBuffed: true);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Felix", EqualWeights, situation);
+        Assert.AreEqual(0.4f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Havet_TargetInExecuteRange_BoostsSkillWeight()
+    {
+        var situation = new BattleSituation(targetLowestHpRatio: 0.2f);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Havet", EqualWeights, situation);
+        Assert.AreEqual(2.5f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Havet_TargetHealthy_KeepsBaseWeight()
+    {
+        var situation = new BattleSituation(targetLowestHpRatio: 0.8f);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Havet", EqualWeights, situation);
+        Assert.AreEqual(1f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Lacrima_MultipleTargetsAlive_BoostsSkillWeight()
+    {
+        var situation = new BattleSituation(aliveTargetCount: 3);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Lacrima", EqualWeights, situation);
+        Assert.AreEqual(2.5f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Lacrima_SingleTargetAlive_SuppressesSkillWeight()
+    {
+        var situation = new BattleSituation(aliveTargetCount: 1);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Lacrima", EqualWeights, situation);
+        Assert.AreEqual(0.4f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Phobia_TargetNotDebuffed_BoostsSkillWeight()
+    {
+        var situation = new BattleSituation(targetDebuffed: false);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Phobia", EqualWeights, situation);
+        Assert.AreEqual(2.5f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_Phobia_TargetAlreadyDebuffed_SuppressesSkillWeight()
+    {
+        var situation = new BattleSituation(targetDebuffed: true);
+        var result = EnemySituationalAI.ApplySituationalModifiers("Phobia", EqualWeights, situation);
+        Assert.AreEqual(0.4f, SkillWeight(result), 0.0001f);
+    }
+
+    [Test]
+    public void ApplySituationalModifiers_IrascorOrUnknownType_LeavesWeightsUnchanged()
+    {
+        var result = EnemySituationalAI.ApplySituationalModifiers("Irascor", EqualWeights, default);
+        Assert.AreEqual(1f, SkillWeight(result), 0.0001f);
+        Assert.AreEqual(1f, AttackWeight(result), 0.0001f);
+    }
 }

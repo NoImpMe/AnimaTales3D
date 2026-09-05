@@ -266,3 +266,20 @@
 - 씬/프리팹을 건드리지 않는 순수 C#/JSON 작업이라 `save_scene` 대상 없음
 ### 실패와 수정
 - `SkillDatabaseTests`에서 `Affect`/`Turn`이 JSON에 없는 스킬(`AmareHeal`)의 `Affect` 필드가 `null`일 것으로 기대했으나 실제로는 `JsonUtility`가 빈 `List<string>`으로 채움 → 테스트를 "null 또는 Count==0 허용"으로 완화해 실제 동작에 맞춤 (버그 아님, JsonUtility의 알려진 동작)
+
+## [구현] 비-Irascor 5개 테마 적 AI 상황 인지형 개선 — 2026-09-05 20:10
+### 프롬프트
+"나머지 5개를 각 상황에 맞게 적 AI를 조금 똑똑하게 만들고 싶어" (LOG #13에서 제안했던 게임적 개선안 중 2번, 사람 승인)
+### 조작 내역
+- 원본(2D `EnemyActions.DecideAction`)에는 테마별 분기가 전혀 없이(Irascor 예외만 있고) 나머지 전부 균일 가중 랜덤이었음 — 실제 유닛 데이터 모델이 아직 없는 순수 로직 단계이므로, "상황"을 나타내는 최소 입력 구조체를 새로 설계해 상황별 스킬 사용 배율만 조정하고 실제 결정은 기존 `EnemyAI.DecideAction`에 위임하는 방식으로 구현(사람이 승인한 방향성 안에서 구체적 수치·구조는 안전하게 추론 가능한 세부로 판단해 스스로 결정)
+- `Assets/Scripts/BattleScripts/EnemyAI.cs`에 신규 추가:
+  - `BattleSituation`(readonly struct): `AllyLowestHpRatio`(Amare용)/`SelfTeamBuffed`(Felix용)/`TargetLowestHpRatio`(Havet용)/`AliveTargetCount`(Lacrima용)/`TargetDebuffed`(Phobia용) — 테마마다 실제로 쓰는 필드는 하나뿐이지만 호출부 단순화를 위해 구조체 하나로 통합, 전부 기본값이 "AI를 더 똑똑하게 만들지 않는 중립값"
+  - `EnemySituationalAI.ApplySituationalModifiers(unitType, baseWeights, situation)`: SkillList.json 기준 테마별 실제 스킬 성격(Amare=회복/실드, Felix=버프, Havet=단일공격, Lacrima=광역공격, Phobia=디버프)에 맞춰 UseSkill 가중치에만 배율(부스트 2.5배/억제 0.4배, Havet 처치권 판단 시에만 부스트·아니면 배율 1)을 곱한 새 가중치 리스트를 반환. Attack 가중치는 그대로. Irascor·미지정 테마는 배율 1(무변화) — 어차피 `DecideAction`이 Irascor는 별도로 무조건 공격 처리하므로 안전
+- `Assets/Tests/EditMode/EnemyAITests.cs`에 회귀 테스트 11개 추가: 테마 5개 × (부스트 조건/억제 또는 무변화 조건) 2케이스 + Irascor/미지정 무변화 1케이스
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → **69/69 통과**(기존 58 + 신규 11개)
+- `unity command console --level error` → 최신 컴파일 에러 없음(과거 잔여 로그만 존재, seq 확인)
+- 씬/프리팹 변경 없는 순수 C# 작업이라 `save_scene` 대상 없음
+### 실패와 수정
+- 없음
