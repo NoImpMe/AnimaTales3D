@@ -1,7 +1,7 @@
 # CONVERSION_SPEC.md — 2D→3D 전환 사양
 
 **상태**: 진행 중. 오버월드(좌표계·카메라·절차적 생성)는 이미 구현됨 + EditMode 테스트 보강 완료 + 생성 수치 Config 이전 완료. 전투 씬은 아직 미착수.
-(2026-09-03 기준: LOG.md #2·#3 작업 반영해 이 문서를 갱신함)
+(2026-09-05 기준: LOG.md #2·#3·#7 작업 반영해 이 문서를 갱신함)
 
 ## 1. 전환 범위
 좌표계·이동·카메라까지 포함해 재설계한다. 오버월드는 원본(고정 스테이지 배치)보다 넓은 범위로 재설계됐다 — 절차적 구역 생성은 의도한 설계로 승인됨(아래 3절 참고). 전투 씬은 아직 손대지 않았다.
@@ -29,10 +29,11 @@ Axial(q, r) 좌표계를 새로 도입했다 (`CONVERSION_SPEC.md` 이전 버전
 - 타일 타입: `Start`/`Battle`/`Wall`/`Empty`/`Boss` (`HexTileType`)
 - ✅ `wallChance`/`battleChance`/`hexSize`/`zoneRadius`는 `DungeonGenerationConfig`(ScriptableObject, `Assets/Configs/DungeonGenerationConfig.asset`)가 소유한다. `DungeonGridManager`는 `config` 참조 하나만 들고 값을 읽기만 한다 (LOG #3, 2026-09-03)
 
-## 4. 카메라 설계 — ✅ 확정 (실제 구현 기준으로 갱신)
-`CameraDragController` + Orthographic 카메라로 구현됨 (`StageScene`, Camera 컴포넌트 `orthographic: 1`, `orthographic size: 5`).
+## 4. 카메라 설계 — ✅ 확정 (실제 구현 기준으로 갱신, 2026-09-05 LOG #7 반영)
+`CameraDragController` + Orthographic 카메라로 구현됨 (`StageScene`, Camera 컴포넌트 `orthographic: 1`, `orthographic size: 5`). Player 기준 오프셋 `(0, 5, -10)`, X축 약 25° 하향 피치의 쿼터뷰 각도.
 - 우클릭 드래그로 XZ 평면(Y = `planeHeight`, 기본 0)을 팬(pan) 이동 — Raycast와 Plane의 교차점 기반
-- 이동 가능 범위는 `tilesRoot` 하위 모든 `Renderer`의 Bounds를 스캔해 자동 계산(+`boundsPadding`), 새 구역이 생길 때마다 `DungeonGridManager`가 `CameraDragController.Instance.RecalculateBounds()`를 호출해 갱신
+- **Player가 타일 이동할 때 카메라도 같은 방향·거리만큼, 같은 시간(`PlayerToken.moveDuration`) 동안 함께 이동한다** (`PlayerToken.MoveTo` → `CameraDragController.FollowMove(delta, duration)`). 드래그 팬과는 별도 코루틴이라 공존 가능. 카메라는 Player의 Y(수직 hop 연출)는 따라가지 않고 XZ 평면 이동만 추적
+- 이동 가능 범위는 `tilesRoot` 하위 모든 `Renderer`의 Bounds를 스캔해 자동 계산(+`boundsPadding`), 새 구역이 생길 때마다 `DungeonGridManager`가 `CameraDragController.Instance.RecalculateBounds()`를 호출해 갱신. 드래그 팬과 `FollowMove` 둘 다 이 범위로 클램프되므로, 아직 넓지 않은 초기 구역에서는 카메라가 Player를 완벽히 따라가지 못하고 경계에서 멈출 수 있음(의도된 동작 — 드래그 팬과 동일 정책)
 - 좌클릭은 `HexTile.OnMouseDown` → `DungeonGridManager.OnTileClicked`로 별도 처리되므로 우클릭 드래그와 충돌 없음
 - ⚠️ **전투 씬 카메라는 아직 포팅되지 않음**: 원본 `CameraManager.ZoomSingleOpp/ZoomMultiOpp`(Cinemachine 줌인 연출, z=-10 고정)에 대응하는 3D 버전이 없다. 오버월드 카메라와는 별개 시스템이므로, 전투 씬 작업을 시작할 때 별도로 설계할 것.
 

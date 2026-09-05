@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -29,6 +30,7 @@ public class CameraDragController : MonoBehaviour
     private bool isDragging;
     private Vector2 minXZ;
     private Vector2 maxXZ;
+    private Coroutine followRoutine;
 
 private void Awake()
     {
@@ -62,6 +64,43 @@ private void Start()
     }
 
 
+    /// <summary>
+    /// Player가 타일 간 이동할 때 같은 방향·거리·시간만큼 카메라도 따라 움직이게 한다
+    /// (쿼터뷰 느낌으로 카메라가 Player를 중심으로 따라오는 연출). PlayerToken.MoveTo에서 호출.
+    /// </summary>
+    public void FollowMove(Vector3 delta, float duration)
+    {
+        if (followRoutine != null) StopCoroutine(followRoutine);
+        followRoutine = StartCoroutine(FollowMoveRoutine(delta, duration));
+    }
+
+    private IEnumerator FollowMoveRoutine(Vector3 delta, float duration)
+    {
+        Vector3 startPos = transform.position;
+        Vector3 targetPos = startPos + delta;
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            transform.position = ClampToBounds(Vector3.Lerp(startPos, targetPos, t));
+            yield return null;
+        }
+
+        transform.position = ClampToBounds(targetPos);
+    }
+
+    private Vector3 ClampToBounds(Vector3 position)
+    {
+        if (useBounds)
+        {
+            position.x = Mathf.Clamp(position.x, minXZ.x, maxXZ.x);
+            position.z = Mathf.Clamp(position.z, minXZ.y, maxXZ.y);
+        }
+        return position;
+    }
+
     private void Update()
     {
         if (Input.GetMouseButtonDown(dragMouseButton))
@@ -82,15 +121,7 @@ private void Start()
             if (TryGetGroundPoint(Input.mousePosition, out Vector3 currentPoint))
             {
                 Vector3 delta = dragOrigin - currentPoint;
-                Vector3 newPos = transform.position + delta;
-
-                if (useBounds)
-                {
-                    newPos.x = Mathf.Clamp(newPos.x, minXZ.x, maxXZ.x);
-                    newPos.z = Mathf.Clamp(newPos.z, minXZ.y, maxXZ.y);
-                }
-
-                transform.position = newPos;
+                transform.position = ClampToBounds(transform.position + delta);
 
                 // 카메라를 이미 이동시켰으므로, 다음 프레임 delta 계산 기준점을 다시 잡아준다.
                 TryGetGroundPoint(Input.mousePosition, out dragOrigin);

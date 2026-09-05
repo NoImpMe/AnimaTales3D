@@ -27,11 +27,12 @@ public class PlayerToken : MonoBehaviour
     /// </summary>
     public void WarpTo(Vector3 tilePosition)
     {
-        transform.position = tilePosition + Vector3.up * 0.5f;
+        transform.position = tilePosition;
     }
 
     /// <summary>
-    /// 부드럽게 타일 간 이동. Animator가 있으면 이동 시작/종료에 맞춰 "IsMoving"을 토글한다.
+    /// 부드럽게 타일 간 이동. Animator가 있으면 이동 시작/종료에 맞춰 "IsMoving"을 토글하고,
+    /// 카메라(CameraDragController)가 있으면 같은 시간 동안 같은 만큼 함께 움직여 따라오게 한다.
     /// </summary>
     public void MoveTo(Vector3 tilePosition)
     {
@@ -42,12 +43,14 @@ public class PlayerToken : MonoBehaviour
         {
             Debug.LogWarning("[PlayerToken] 비활성 상태에서 MoveTo 호출됨. Player Token이 " +
                 "Hierarchy(씬)의 오브젝트가 아니라 Project 창의 프리팹을 참조하고 있는지 확인하세요.");
-            transform.position = tilePosition + Vector3.up * 0.5f;
+            transform.position = tilePosition;
             return;
         }
 
+        CameraDragController.Instance?.FollowMove(tilePosition - transform.position, moveDuration);
+
         if (moveRoutine != null) StopCoroutine(moveRoutine);
-        moveRoutine = StartCoroutine(MoveRoutine(tilePosition + Vector3.up * 0.5f));
+        moveRoutine = StartCoroutine(MoveRoutine(tilePosition));
     }
 
     private IEnumerator MoveRoutine(Vector3 targetPos)

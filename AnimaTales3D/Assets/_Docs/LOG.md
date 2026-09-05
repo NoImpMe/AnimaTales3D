@@ -123,3 +123,20 @@
 - `unity command instantiate_prefab`은 `.prefab` 확장자 자산만 허용하고 FBX 모델은 "not a prefab asset"으로 거부함 → `eval`에서 `PrefabUtility.InstantiatePrefab(GameObject)`을 직접 호출해 우회 (FBX 모델도 유효한 프리팹 소스이므로 API 자체는 허용)
 - `eval` 코드에서 `Object.GetInstanceID()` 사용 시 이 Unity 버전(6000.5)에서 obsolete 경고가 컴파일 실패로 처리됨 → 로그/디버그용 인스턴스 식별에는 `GetInstanceID` 대신 다른 값(이름 등)을 사용할 것 → FAIL.md에 기록
 - Play 모드에서 Unity 에디터 창이 포커스를 잃으면 Player Loop가 완전히 정지해 CLI 자동화만으로는 코루틴 완료를 끝까지 관찰할 수 없었음 → FAIL.md에 기록
+
+## [수정] Player 이동 Y좌표를 0으로, 이동 시 카메라가 Player를 따라가도록 — 2026-09-05 15:00
+### 프롬프트
+"Player가 이동할 때 Y좌표가 0.5로 되는데 0으로 바꿔주고, 현재는 카메라가 고정되어 있는데 Player가 타일을 이동할 때 쿼터뷰 느낌으로 카메라가 Player를 중심으로 이동하게 해줘"
+### 조작 내역
+- `Assets/Scripts/StageScripts/PlayerToken.cs` 수정: `WarpTo`/`MoveTo`(비활성 폴백)/`MoveRoutine`의 `tilePosition + Vector3.up * 0.5f` 3곳에서 `+ Vector3.up * 0.5f` 오프셋 제거 (Capsule 시절 높이 보정용이었고 Character 모델 원점은 이미 지면 기준)
+- `unity command get_serialized_fields`로 Main Camera 확인: 로컬 위치 `(0,5,-10)`, X축 약 25° 하향 회전(쿼터뷰 각도) — 이 오프셋을 그대로 유지한 채 Player를 따라가게 하는 방향으로 설계
+- `Assets/Scripts/CameraDragController.cs`에 `FollowMove(Vector3 delta, float duration)` + `FollowMoveRoutine` 코루틴 추가: 기존 우클릭 드래그 팬과는 별도 코루틴이므로 공존 가능. 기존 드래그의 클램프 로직을 `ClampToBounds` 헬퍼로 추출해 드래그·팔로우 양쪽에서 재사용(중복 제거)
+- `PlayerToken.MoveTo`에서 플레이어 코루틴을 시작하기 전 `CameraDragController.Instance?.FollowMove(tilePosition - transform.position, moveDuration)` 호출 — 플레이어와 정확히 같은 델타·같은 시간으로 이동시켜 Y(hop 연출)는 카메라에 전달하지 않음(XZ만 추적)
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command console --level error` → 새로 발생한 에러 없음 (전부 기존 Inspector 노이즈/Starter Assets 메뉴 관련 무관 에러)
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과, 0.27초
+- `unity command editor_play` 후 `eval`로 확인: 정지 상태에서 `Player.transform.position.y == 0.00` (기존 0.5 아님). 사람이 실제로 타일을 여러 번 클릭해 이동시키는 동안 `eval`로 스냅샷 촬영 → Player와 Camera의 X좌표가 매 순간 정확히 일치함을 확인(카메라가 Player를 따라 이동함). Z축 오프셋은 초기값 `-10`에서 점점 줄어들었는데, 이는 `CameraDragController.useBounds` 클램프가 아직 좁은 초기 구역 경계에 카메라를 붙잡아둔 것 — 기존 드래그 팬에도 이미 있던 클램프 정책과 동일해 새로운 버그가 아님(구역이 넓어지면 자연히 해소됨)
+- `unity command editor_stop` → `git status --short` → 씬 파일 변경 없이 스크립트 2개만 변경됨을 확인
+### 실패와 수정
+- 없음
