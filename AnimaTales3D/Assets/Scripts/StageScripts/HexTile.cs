@@ -31,11 +31,21 @@ public class HexTile : MonoBehaviour
     [SerializeField] private Transform decoration;
     [SerializeField] private float decorationRotationJitterDegrees = 360f;
 
-    private MeshRenderer[] meshRenderers;
+    [Header("전투 타일 실사 이미지 (없으면 무시)")]
+    [Tooltip("설정하면 코드 색상 대신 Resources/Tile/<테마>Battle.png(Sprite)를 로드해 이 SpriteRenderer에 입힌다. Sprite-Lit-Default 셰이더를 써야 Light2D의 영향을 받는다.")]
+    [SerializeField] private SpriteRenderer themeArtRenderer;
+
+    [Header("2.5D 연출 (Light2D/Particle, 없으면 무시)")]
+    [Tooltip("Light2D·ParticleSystem을 담은 자식. 미공개 상태에서는 빛/파티클도 실루엣처럼 새어 보이면 안 되므로 공개 여부에 맞춰 통째로 활성/비활성한다.")]
+    [SerializeField] private GameObject effects;
+
+    // MeshRenderer(그레이박스 프리미티브)와 SpriteRenderer(실사 이미지)를 모두 아우르는 공통 타입으로 잡아야
+    // 실사 이미지 타일도 공개/비공개·색상 처리 루프에 함께 걸린다.
+    private Renderer[] renderers;
 
     private void Awake()
     {
-        meshRenderers = GetComponentsInChildren<MeshRenderer>();
+        renderers = GetComponentsInChildren<Renderer>();
 
         if (decoration != null)
         {
@@ -55,6 +65,13 @@ public class HexTile : MonoBehaviour
         theme = zoneTheme;
         isRevealed = false;
         isCleared = false;
+
+        if (themeArtRenderer != null)
+        {
+            var sprite = Resources.Load<Sprite>($"Tile/{theme}Battle");
+            if (sprite != null) themeArtRenderer.sprite = sprite;
+        }
+
         RefreshVisual();
     }
 
@@ -76,38 +93,50 @@ public class HexTile : MonoBehaviour
 
     private void RefreshVisual()
     {
-        if (meshRenderers == null || meshRenderers.Length == 0) return;
+        if (renderers == null || renderers.Length == 0) return;
 
         // 인접하지 않아 아직 탐험하지 않은 타일은 실루엣조차 보이면 안 되므로 렌더러 자체를 끈다
         // (색만 어둡게 칠하는 방식은 형태가 비쳐 보여서 안 됨).
-        foreach (var renderer in meshRenderers)
+        foreach (var renderer in renderers)
         {
             renderer.enabled = isRevealed;
         }
 
+        // Light2D는 Renderer가 아니라서 위 루프에 안 걸린다 — 따로 꺼줘야 빛이 새지 않는다.
+        if (effects != null) effects.SetActive(isRevealed);
+
         if (!isRevealed) return;
 
-        Color baseColor = tileType switch
-        {
-            HexTileType.Start => startColor,
-            HexTileType.Battle => battleColor,
-            HexTileType.Wall => wallColor,
-            HexTileType.Boss => bossColor,
-            _ => emptyColor,
-        };
+        // 실사 이미지(themeArtRenderer)를 쓰는 타일은 이미지 자체가 테마를 표현하므로 흰색(원본 그대로) 유지.
+        Color baseColor = themeArtRenderer != null
+            ? Color.white
+            : tileType switch
+            {
+                HexTileType.Start => startColor,
+                HexTileType.Battle => battleColor,
+                HexTileType.Wall => wallColor,
+                HexTileType.Boss => bossColor,
+                _ => emptyColor,
+            };
 
         // 타일 역할(색)과 구역 테마 색을 섞어서, "역할"과 "어느 구역인지"를 동시에 구분할 수 있게 한다.
-        // Wall은 테마색을 섞지 않아 항상 어둡게 유지 (이동 불가라는 인지가 우선이므로).
-        Color c = tileType == HexTileType.Wall
+        // Wall과 실사 이미지 타일은 테마색을 섞지 않는다 (Wall은 항상 어둡게 유지, 이미지는 원본 유지가 우선).
+        Color c = (tileType == HexTileType.Wall || themeArtRenderer != null)
             ? baseColor
             : Color.Lerp(baseColor, ZoneThemeUtility.GetColor(theme), themeTintStrength);
 
-        // 이미 클리어한 타일은 살짝 어둡게 표시해서 구분
-        if (isCleared) c *= 0.6f;
+        // 이미 클리어한 타일은 살짝 어둡게 표시해서 구분 (알파는 그대로 둬야 실사 이미지의 투명 배경이 안 깨짐)
+        if (isCleared) c = new Color(c.r * 0.6f, c.g * 0.6f, c.b * 0.6f, c.a);
 
-        foreach (var renderer in meshRenderers)
+        foreach (var renderer in renderers)
         {
-            renderer.material.color = c;
+            // SpriteRenderer는 material.color가 아니라 전용 color 프로퍼티를 써야 한다.
+            // material.color(내부적으로 히든 "_Color" 프로퍼티)를 강제로 건드리면 Sprite-Lit-Default
+            // 셰이더의 알파 블렌딩이 깨져 투명 배경이 흰 사각형으로 보이는 문제가 있었다.
+            if (renderer is SpriteRenderer spriteRenderer)
+                spriteRenderer.color = c;
+            else
+                renderer.material.color = c;
         }
     }
 

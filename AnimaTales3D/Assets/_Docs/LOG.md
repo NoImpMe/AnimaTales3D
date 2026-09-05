@@ -189,3 +189,25 @@
 - `editor_stop` → `git status --short` → 씬 변경 없이 스크립트 1개만 변경됨을 확인
 ### 실패와 수정
 - 없음
+
+## [수정] Resources/Tile 전투타일 실사 이미지를 2.5D로 적용 + Light2D/Particle 연출 추가 — 2026-09-05 17:30
+### 프롬프트
+"Resources/Tile 폴더에 각 타입별 전투타일들 이미지를 넣어놨어 이 이미지들을 2.5D로 보이게 전투타일로 넣어주고 유니티2D light & particle을 사용해서 2.5D 연출을 극대화 할 수 있는 방법이 있으면 추가해줘"
+### 조작 내역
+- `Assets/Resources/Tile/`에 테마별(Amare/Felix/Havet/Irascor/Lacrima/Phobia) 전투타일 PNG 6장 확인. 알파 배경 확인(PIL로 코너 픽셀 alpha=0), `set_import_settings`로 `alphaIsTransparency: true`, `textureType: Sprite`, `spriteImportMode: Single`, `spritePixelsPerUnit: 964`(1254px 원본 기준 최종 크기 약 1.3 유닛 목표) 적용
+- 현재 렌더 파이프라인이 `UniversalRendererData`(3D)임을 `eval`로 확인 후, `Light2D`(`UnityEngine.Rendering.Universal.Light2D`)를 실제로 추가해 테스트 → 3D `URP/Lit` 오브젝트에도 영향을 주는 것을 색상 극단값(빨강, 강도 8)으로 확인 → Unity 6/URP 17의 2D/3D 통합 라이팅 덕분에 이 프로젝트에서 정상 동작함을 검증
+- `Assets/Materials/BattleTileImage.mat` 신규 생성 (Universal Render Pipeline/2D/Sprite-Lit-Default 셰이더 — Light2D의 영향을 받도록)
+- `HexTile_Battle.prefab` 재구성: 기존 Capsule 장식(Decoration) 제거, 본체 Cube는 MeshRenderer 제거(BoxCollider만 유지, 클릭 판정용) 후 `TileImage`(스케일 보정용 부모, localScale (1,5,1)로 본체의 눌린 Y 스케일 상쇄) 하위에 `Quad+SpriteRenderer`(`themeArtRenderer`)를 카메라 피치각(X=25°)에 맞춰 배치. `Effects` 하위에 `Glow`(Light2D, Point, 주황색, outerRadius 1.3)와 `Embers`(ParticleSystem, 위로 떠오르는 주황~빨강 파티클, `eval`로 main/emission/shape/colorOverLifetime 모듈 직접 설정) 추가
+- `Assets/Scripts/StageScripts/HexTile.cs` 수정: `themeArtRenderer`(SpriteRenderer, 있으면 `Resources.Load<Sprite>($"Tile/{theme}Battle")`로 테마별 이미지 로드), `effects`(GameObject, 공개 여부에 따라 통째로 활성/비활성 — Light2D/Particle은 Renderer가 아니라 기존 실루엣 숨김 루프에 안 걸리므로 별도 처리 필요) 필드 추가. 색상 계산 로직에 "실사 이미지 타일은 흰색 유지(테마색 안 섞음)" 분기 추가. `meshRenderers`(MeshRenderer 전용) → `renderers`(Renderer 전체, SpriteRenderer 포함)로 확장
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과, 0.1~0.13초 (여러 차례 재확인)
+- `unity command capture_game_view`로 반복 검증. 처음엔 투명 배경이 흰 사각형으로 보이는 문제 발견 → 원인 조사:
+  1. `SpriteRenderer`에 `renderer.material.color`(히든 `_Color`)를 직접 건드리면 알파 블렌딩이 깨짐 → `SpriteRenderer.color` 전용 프로퍼티로 교체 (코드에 반영, 위 참고)
+  2. 그래도 재현되어 셰이더(Lit/Unlit), GPU Instancing, Particle 유무, 월드/스크린 좌표(카메라 이동으로 확인), C# 상태(color/material/sprite 전부 동일) 등을 하나씩 배제
+  3. 최종 원인: **Unity 에디터에서 Play 진입 직후 수 초간 셰이더(Sprite-Lit-Default) 워밍업이 끝나지 않아 일시적으로 흰색으로 보이는 현상**이었음 — Play 진입 후 10초 대기 후 재캡처하니 모든 전투타일이 정상적으로 투명 배경과 함께 렌더링됨. 코드/프리팹 문제가 아니라 에디터 한정 워밍업 지연으로 결론
+- `capture_game_view`로 마을/보스와 달리 전투타일이 실제 테마별 실사 이미지(천사 정원/유령 무덤/사막 신전 등)로 표시되고, 헥사곤 격자 크기에 맞게 스케일된 것을 육안 확인
+- 미공개 타일은 `effects.SetActive(false)`로 Light2D/Particle까지 완전히 꺼지는지 `eval`로 상태 조회해 확인 (기존 [수정] 항목의 "실루엣도 안 보이게" 요구사항이 실사 이미지 타일에도 유지됨)
+### 실패와 수정
+- Play 진입 직후 3초 이내 캡처한 스크린샷은 `Sprite-Lit-Default` 셰이더 워밍업이 안 끝나 흰 배경으로 보일 수 있음 → 이 조합(2D Lit 셰이더 + 3D 씬)을 스크린샷으로 검증할 때는 Play 진입 후 최소 5~10초 대기 후 캡처할 것 → FAIL.md에 기록
+- `Assets/Resources/Tile/`의 4개 PNG(Havet/Irascor/Lacrima/Phobia)가 반복적인 임포트 설정 변경 과정에서 원본 1254px → 1024px로 축소 저장됨(내용·알파는 정상, 해상도만 축소). 원인 미상이나 화질에 큰 지장은 없어 그대로 둠 — 필요하면 원본 이미지를 재배치해서 다시 임포트할 것
