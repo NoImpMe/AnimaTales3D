@@ -153,3 +153,26 @@
 - `unity command editor_play` → `eval`로 이동 전 `eulerAngles == (0,0,0)`(회전 이력 없음) 확인 후 `token.MoveTo(...)` 호출 → 이동 완료 후 `eulerAngles.y == 239.99`(≈240°) 확인 — 헥사곤 6방향은 60°씩 나뉘므로 60의 배수(240°)로 정확히 떨어진 것은 실제 타일 방향을 향해 올바르게 회전했다는 강한 증거로 판단. `editor_stop` 후 `git status`로 씬 변경 없이 스크립트 1개만 변경됨을 확인
 ### 실패와 수정
 - 없음
+
+## [구현] 타일 타입별(마을/전투/보스) 구분되는 그레이박스 프리팹 제작 — 2026-09-05 16:00
+### 프롬프트
+"타입별로 같은 메시에 색만다르게 하는 것이 아니라 전투타일, 마을타일, 보스전투타일 이렇게 메시를 구분해서 만들어야 할 것 같다 또한 타입별로 조금씩 다르게 해야할 것 같다" → 실제 3D 에셋이 없는 상태라 "지금 바로 그레이박스 플레이스홀더로 구현"할지 "코드 구조만 준비"할지 확인 질의 → "그레이박스 플레이스홀더로 지금 바로" 확정
+### 조작 내역
+- `Assets/Scripts/StageScripts/HexTile.cs` 수정: 단일 `meshRenderer` 필드를 `meshRenderers`(배열, `GetComponentsInChildren`)로 바꿔 장식(Decoration) 하위 렌더러까지 한 번에 타입/테마 색을 입힐 수 있게 함. `decoration`(Transform, 선택) 필드 추가 — 있으면 `Awake`에서 Y축 무작위 회전(`decorationRotationJitterDegrees`, 기본 360°)을 줘서 같은 타입이어도 인스턴스마다 살짝 다르게 보이게 함(요청한 "타입별로 조금씩 다르게")
+- `Assets/Scripts/StageScripts/DungeonGridManager.cs` 수정: `villageTilePrefab`/`battleTilePrefab`/`bossTilePrefab` 필드 추가(비어있으면 기존 `hexTilePrefab`로 대체), `PrefabFor(HexTileType)` 헬퍼로 타입별 프리팹을 고르도록 `SpawnTile`에서 `Instantiate(hexTilePrefab, ...)`를 `Instantiate(PrefabFor(type), ...)`로 교체
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+- 그레이박스 프리팹 3종을 라이브 에디터에서 직접 조립(기본 Cube primitive + BoxCollider + `HexTile` 스크립트 + Decoration 자식):
+  - `HexTile_Village.prefab`: 몸체 Cube + 45° 회전한 지붕 Cube (작은 집 모양)
+  - `HexTile_Battle.prefab`: 삐죽삐죽 기울어진 Capsule 3개 클러스터 (위험 지형 느낌)
+  - `HexTile_Boss.prefab`: 크고 어두운 Capsule 기둥 + 꼭대기 Sphere (더 크고 위압적인 형태)
+  - 각 파츠는 `create_gameobject(s)`로 생성 후 `set_transform`으로 위치/회전/스케일 지정, `set_serialized_field`로 기존 URP/Lit 머티리얼(`31321ba15b8f8eb4c954353edc038b1d`) 재사용 연결, `remove_component`로 불필요한 프리미티브 기본 콜라이더 제거(클릭 판정은 타일 본체의 BoxCollider 하나만 담당). 장식 부모(Decoration)는 `localPosition=(0,0.5,0)`·`localScale=(1,5,1)`로 배치해 타일 본체의 눌린 스케일(1,0.2,1)을 상쇄, 이후 자식들은 실제 월드 단위로 배치
+  - `create_prefab`으로 각각 저장 후 씬의 임시 인스턴스는 `delete_gameobject`로 정리
+- `unity command set_serialized_field`로 `DungeonGridManager`의 `villageTilePrefab`/`battleTilePrefab`/`bossTilePrefab`을 새 프리팹 3종에 연결
+### 검증
+- `unity command get_serialized_fields`로 4개 프리팹 참조(기존 `hexTilePrefab` 포함)와 `playerToken`/`config`가 모두 정상 연결됨을 확인
+- `unity command console --level error` → 새로 발생한 에러 없음
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과, 0.26초
+- `unity command editor_play` → `capture_game_view`로 실제 화면 캡처해 육안 확인: 마을 타일 위 집 모양, 전투 타일 위 뾰족한 캡슐 클러스터가 색상뿐 아니라 실루엣으로도 뚜렷이 구분됨. `eval`로 리플렉션 조회해 생성된 보스 타일 5개 전부 `Decoration` 자식을 가진 것(=`HexTile_Boss` 프리팹이 실제로 쓰였음)을 확인
+- `editor_stop` → `git diff --stat`로 씬 변경이 `DungeonGridManager`의 필드 3줄 추가뿐임을 확인
+### 실패와 수정
+- 없음

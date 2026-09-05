@@ -21,7 +21,14 @@ public class DungeonGridManager : MonoBehaviour
     public static DungeonGridManager Instance { get; private set; }
 
     [Header("프리팹")]
+    [Tooltip("Wall/Empty 등 특별한 장식이 없는 타입에 쓰는 기본 타일")]
     [SerializeField] private HexTile hexTilePrefab;
+    [Tooltip("HexTileType.Start(마을) 전용 타일. 비어있으면 hexTilePrefab을 대신 쓴다.")]
+    [SerializeField] private HexTile villageTilePrefab;
+    [Tooltip("HexTileType.Battle 전용 타일. 비어있으면 hexTilePrefab을 대신 쓴다.")]
+    [SerializeField] private HexTile battleTilePrefab;
+    [Tooltip("HexTileType.Boss 전용 타일. 비어있으면 hexTilePrefab을 대신 쓴다.")]
+    [SerializeField] private HexTile bossTilePrefab;
     [SerializeField] private PlayerToken playerToken;
 
     [Header("생성 설정 (수치는 이 Config가 전부 소유)")]
@@ -119,6 +126,20 @@ public class DungeonGridManager : MonoBehaviour
         Debug.Log($"[DungeonGridManager] 구역 #{zone.zoneIndex} 생성 완료 - 테마: {theme}, 중심: {center}, 보스: {zone.bossCoord}");
     }
 
+    /// <summary>
+    /// 타입별로 다른 모양(장식)의 타일 프리팹을 고른다. 전용 프리팹이 비어있으면 기본 타일로 대체한다.
+    /// </summary>
+    private HexTile PrefabFor(HexTileType type)
+    {
+        return type switch
+        {
+            HexTileType.Start when villageTilePrefab != null => villageTilePrefab,
+            HexTileType.Battle when battleTilePrefab != null => battleTilePrefab,
+            HexTileType.Boss when bossTilePrefab != null => bossTilePrefab,
+            _ => hexTilePrefab,
+        };
+    }
+
     private void SpawnTile(HexCoord coord, HexTileType type, ZoneTheme theme, Zone zone)
     {
         if (tiles.ContainsKey(coord))
@@ -128,7 +149,7 @@ public class DungeonGridManager : MonoBehaviour
         }
 
         Vector3 worldPos = coord.ToWorldPosition(config.hexSize);
-        var tile = Instantiate(hexTilePrefab, worldPos, Quaternion.identity, transform);
+        var tile = Instantiate(PrefabFor(type), worldPos, Quaternion.identity, transform);
         tile.name = $"HexTile_{coord.q}_{coord.r}_{theme}";
         tile.Initialize(coord, type, theme);
         tiles[coord] = tile;

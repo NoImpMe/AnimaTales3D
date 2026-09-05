@@ -149,6 +149,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DungeonGridManager
   hexTilePrefab: {fileID: 7376942789132445852, guid: 0ede45ed977507d46a21f73afceff0fa, type: 3}
+  villageTilePrefab: {fileID: 5995900289217073265, guid: ba9b4ecbdb349324ca70a31aa80a99e2, type: 3}
+  battleTilePrefab: {fileID: 666309809158176577, guid: 48c4222a80f39b84ab4ad7a57a0c9070, type: 3}
+  bossTilePrefab: {fileID: 7801831597536912483, guid: f054e32cb260e6846b30a3f71b8b9d6c, type: 3}
   playerToken: {fileID: 100545290}
   config: {fileID: 11400000, guid: 2d0d507e16c53e244b1dc3d39dc3f3ea, type: 2}
 --- !u!4 &3984405
