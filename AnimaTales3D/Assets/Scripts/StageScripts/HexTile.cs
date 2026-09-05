@@ -24,7 +24,6 @@ public class HexTile : MonoBehaviour
     [SerializeField] private Color wallColor = new Color(0.25f, 0.25f, 0.25f);
     [SerializeField] private Color emptyColor = new Color(0.8f, 0.8f, 0.6f);
     [SerializeField] private Color bossColor = new Color(0.6f, 0.1f, 0.6f);
-    [SerializeField] private Color hiddenColor = new Color(0.05f, 0.05f, 0.05f);
     [SerializeField, Range(0f, 1f)] private float themeTintStrength = 0.45f; // 테마색을 얼마나 섞을지
 
     [Header("타입별 장식 (없으면 무시)")]
@@ -79,31 +78,32 @@ public class HexTile : MonoBehaviour
     {
         if (meshRenderers == null || meshRenderers.Length == 0) return;
 
-        Color c;
-        if (!isRevealed)
+        // 인접하지 않아 아직 탐험하지 않은 타일은 실루엣조차 보이면 안 되므로 렌더러 자체를 끈다
+        // (색만 어둡게 칠하는 방식은 형태가 비쳐 보여서 안 됨).
+        foreach (var renderer in meshRenderers)
         {
-            c = hiddenColor;
+            renderer.enabled = isRevealed;
         }
-        else
+
+        if (!isRevealed) return;
+
+        Color baseColor = tileType switch
         {
-            Color baseColor = tileType switch
-            {
-                HexTileType.Start => startColor,
-                HexTileType.Battle => battleColor,
-                HexTileType.Wall => wallColor,
-                HexTileType.Boss => bossColor,
-                _ => emptyColor,
-            };
+            HexTileType.Start => startColor,
+            HexTileType.Battle => battleColor,
+            HexTileType.Wall => wallColor,
+            HexTileType.Boss => bossColor,
+            _ => emptyColor,
+        };
 
-            // 타일 역할(색)과 구역 테마 색을 섞어서, "역할"과 "어느 구역인지"를 동시에 구분할 수 있게 한다.
-            // Wall은 테마색을 섞지 않아 항상 어둡게 유지 (이동 불가라는 인지가 우선이므로).
-            c = tileType == HexTileType.Wall
-                ? baseColor
-                : Color.Lerp(baseColor, ZoneThemeUtility.GetColor(theme), themeTintStrength);
+        // 타일 역할(색)과 구역 테마 색을 섞어서, "역할"과 "어느 구역인지"를 동시에 구분할 수 있게 한다.
+        // Wall은 테마색을 섞지 않아 항상 어둡게 유지 (이동 불가라는 인지가 우선이므로).
+        Color c = tileType == HexTileType.Wall
+            ? baseColor
+            : Color.Lerp(baseColor, ZoneThemeUtility.GetColor(theme), themeTintStrength);
 
-            // 이미 클리어한 타일은 살짝 어둡게 표시해서 구분
-            if (isCleared) c *= 0.6f;
-        }
+        // 이미 클리어한 타일은 살짝 어둡게 표시해서 구분
+        if (isCleared) c *= 0.6f;
 
         foreach (var renderer in meshRenderers)
         {

@@ -176,3 +176,16 @@
 - `editor_stop` → `git diff --stat`로 씬 변경이 `DungeonGridManager`의 필드 3줄 추가뿐임을 확인
 ### 실패와 수정
 - 없음
+
+## [수정] 미공개(비인접·미탐험) 타일의 실루엣이 보이지 않도록 수정 — 2026-09-05 16:20
+### 프롬프트
+"현재 인접하지 않은 타일을 검은색으로만 표시하여 실루엣을 보고 어떤 타일인지 알 수 있는데 인접하지 않고 아직 탐험하지 않은 타일은 실루엣도 보이지 않게 해야할 것 같다."
+### 조작 내역
+- `Assets/Scripts/StageScripts/HexTile.cs`의 `RefreshVisual()` 수정: `!isRevealed`일 때 색상(`hiddenColor`)만 어둡게 칠하던 방식 대신, 타일의 모든 `MeshRenderer`(본체+장식)의 `enabled`를 `isRevealed` 값으로 꺼버려 렌더링 자체를 하지 않게 함 — 형태(실루엣)가 전혀 안 보임. 이제 쓰이지 않게 된 `hiddenColor` 필드 제거
+### 검증
+- `unity command console --level error` → 새로 발생한 에러 없음
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과, 0.26초
+- `unity command editor_play` → `capture_game_view`로 실제 화면 캡처 확인: 공개된 타일(마을/전투/빈/벽)만 보이고 그 외 영역은 완전히 빈 바닥으로 보임 (수정 전에는 검은 실루엣들이 떠 있었음)
+- `editor_stop` → `git status --short` → 씬 변경 없이 스크립트 1개만 변경됨을 확인
+### 실패와 수정
+- 없음
