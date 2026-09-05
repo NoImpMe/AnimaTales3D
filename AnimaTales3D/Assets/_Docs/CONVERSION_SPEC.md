@@ -53,7 +53,7 @@ Axial(q, r) 좌표계를 새로 도입했다 (`CONVERSION_SPEC.md` 이전 버전
   - [완료, LOG #15] 나머지 5개 테마(Amare/Felix/Havet/Lacrima/Phobia) 적 AI 상황 인지형 개선 — `EnemySituationalAI.ApplySituationalModifiers`(신규, 원본에 없던 로직): 테마별로 상황에 따라 UseSkill 가중치에 배율(2.5배 부스트/0.4배 억제)을 적용한 뒤 기존 `EnemyAI.DecideAction`에 그대로 넘기는 구조. Amare=팀원 HP 50% 이하면 회복 우선, Felix=아직 버프 안 걸었으면 버프 우선, Havet=상대 HP 30% 이하(처치권)면 스킬 우선, Lacrima=생존 상대 2명 이상이면 광역 스킬 우선, Phobia=타겟 미디버프면 디버프 우선. Irascor/미지정 테마는 배율 1(무변화). 테스트 11개 추가, EditMode 69/69 통과
   - [완료, LOG #17] 턴 순서 시각화: 좌우로 회전하는 회전체 배치 계산 — `TurnOrderCarouselLayout`(신규 순수 클래스, 원본에 없던 로직). 슬롯 index가 현재 턴(currentIndex)과 몇 도 떨어져 있는지(`GetSlotAngleOffset`), 그 각도로 원형 호 위에 배치한 로컬 위치(`GetSlotLocalPosition`, 정면=−Z·오른쪽=+X), 현재 턴 유닛이 항상 정면에 오도록 회전체 전체에 적용할 Y회전각(`GetCarouselYRotation`)을 계산. 실제 회전 애니메이션·아이콘 프리팹 등 MonoBehaviour/UI 연결은 아직 미착수(유닛 데이터 모델 이식 후 진행)
   - [완료, LOG #16] 전투 구도 규칙: 최대 3:3, 최소 1:1, 좌측 아군/우측 적군 배치 — `BattleFormation`(신규 순수 클래스). 2D 원본 `AllyBattleSetting.SpawnAlly`/`EnemyBattleSetting.SpawnEnemy`의 인원수별 가로 간격 공식(3명: i*3.5-3.5, 2명: i*3.5-1.75, 1명: 0)은 그대로 재사용하고, 원본이 위/아래 행으로 나눴던 축만 좌/우 축으로 새로 매핑(사람 지시로 확정된 신규 배치). 아직 MonoBehaviour 스폰 로직에 연결되지는 않음(유닛 데이터 모델 이식 후 진행)
-  - [미착수] MonoBehaviour/씬 연결: 스폰(위 구도 규칙 적용), 카메라 연출(Cinemachine 재도입 승인됨), UI(HP바/파서바 등 world-to-screen 방식 + 턴순서 회전체), 별도 BattleScene 전환(구조 결정됨)
+  - [1차 완료, LOG #19] MonoBehaviour/씬 연결 — **구조 스켈레톤** 단계(사람 확인: "구조 스켈레톤 먼저"). `BattleScene.unity`(별도 씬, 사람이 미리 생성해둔 빈 씬 위에 구축) + `BattleSpawner`(BattleFormation 규칙에 따라 아군/적군 스폰) + `CM BattleCamera`(Cinemachine 3.x `CinemachineCamera`, 정적 프레이밍 — 아직 동적 추적/줌 연출은 없음) + `HpBarWorldFollow`(world-to-screen HP바, CONVERSION_SPEC 5절 방식대로). 유닛 비주얼은 2D 원본 스프라이트를 최소 세트(felix1/irascor1 각 1종, 사람 지시로 최소화)만 재사용한 2.5D 빌보드 자리표시자 — 나중에 실제 모델로 교체 예정. **아직 없는 것**: 실제 턴 진행(플레이어 입력→스킬 선택→적 AI 응답→승패 판정), 턴 순서 회전체 UI 연결, 동적 카메라 연출 — 다음 단계에서 진행
 
 ## 7. 다음 작업 순서 (제안, 확정 아님)
 1. ~~`HexCoord`/`DungeonGridManager`에 EditMode 테스트 보강 + LOG.md에 소급 기록~~ — 완료 (LOG #2)
@@ -61,4 +61,6 @@ Axial(q, r) 좌표계를 새로 도입했다 (`CONVERSION_SPEC.md` 이전 버전
 3. 전투 씬 포팅 (방안 1: 레이어 분리 우선, LOG #4에서 확정)
    1. ~~순수 로직 레이어(턴/상태/버프/데미지공식/적AI) 포팅 + 회귀 테스트~~ — 완료 (LOG #13)
    2. ~~유닛 데이터 모델 이식 (`IBattleUnit` 구현체, 순수 ScriptableObject/JSON)~~ — 완료 (LOG #18)
-   3. MonoBehaviour/씬 연결: 스폰, 카메라(Cinemachine), UI(world-to-screen), 별도 BattleScene 전환 — 다음 작업
+   3. MonoBehaviour/씬 연결
+      1. ~~구조 스켈레톤(스폰 + 카메라 프레이밍 + 기본 HP UI + BattleScene 전환)~~ — 완료 (LOG #19)
+      2. 실제 턴 진행 연결(플레이어 입력 → 스킬 선택 → 적 AI 응답 → 승패 판정) — 다음 작업

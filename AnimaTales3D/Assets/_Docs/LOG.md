@@ -335,3 +335,26 @@
 - ⚠️ **사람 확인 필요**: `AnimaList.json`의 원본 스탯 수치는 라이브 BGRepo가 아니라 프로젝트에 있던 엑셀 내보내기 파일에서 추출한 것이라, 실제 라이브 2D 게임과 완전히 일치한다는 보장은 없음(정황상 편집용 원본 파일로 추정되나 확정 아님). 시간 나실 때 2D 게임에서 felix1/amare1 등 몇 종의 실제 스탯을 한 번 대조해 확인해 주시면 좋겠습니다.
 ### 실패와 수정
 - 없음
+
+## [구현] MonoBehaviour/씬 연결 — 구조 스켈레톤(스폰+카메라+HP UI+BattleScene) — 2026-09-05 21:40
+### 프롬프트
+"다음 작업 실시해줘" → CONVERSION_SPEC.md 7절 로드맵 확인 결과 다음 작업은 "MonoBehaviour/씬 연결: 스폰, 카메라(Cinemachine), UI, 별도 BattleScene 전환". 항목 자체가 매우 커서, 시작 전 두 가지를 사람에게 확인: (1) 유닛 비주얼 — 2D 원본 스프라이트를 최소 세트만 재사용(확정), (2) 이번 작업 범위 — 구조 스켈레톤(스폰+카메라 프레이밍+기본 HP UI, 실제 턴 진행은 다음 단계로 미룸) 먼저(확정)
+### 조작 내역
+- 체크포인트 커밋 중 `Assets/Scenes/BattleScene.unity`(빈 기본 씬 — Directional Light + Main Camera만 있음)가 이미 존재함을 발견 — 사람이 미리 만들어둔 것으로 판단, 그대로 활용(새로 만들지 않음)
+- `unity command package_list` → Cinemachine(3.1.7)이 이미 설치돼 있음을 확인(패키지 추가 불필요, 이전에 이미 승인·설치됨)
+- 2D 원본 `Resources/Anima/Felix1.prefab`·`Irascor1.prefab` 확인: 둘 다 단일 SpriteRenderer 구조(타일 아트와 동일 패턴). 실제 사용 스프라이트는 원본 스프라이트 시트(`Anima_Sprites/Felix1.png` 3096x2064, `Irascor1.png` 3096x2580, 각각 512x512 프레임 20여 개)의 특정 서브스프라이트 하나뿐임을 `.prefab`의 `m_Sprite` fileID와 `.png.meta`의 `internalID`를 대조해 확인 → Python(PIL)으로 해당 512x512 영역만 크롭해 `Assets/Resources/Anima/felix1.png`·`irascor1.png`(소문자 — AnimaList.json의 Objectfile 표기와 일치시킴)로 이식, Sprite 임포트 설정(alphaIsTransparency, spritePixelsPerUnit≈233로 세계 높이 약 2.2유닛 맞춤) 적용
+- 신규 스크립트 4개: `BattleSceneConfig`(ScriptableObject, level/sideOffset/unitVisualYOffset/hpBarYOffset/cameraPitchDegrees/cameraDistance/cameraHeight 소유), `BattleUnitVisual`(스프라이트 유닛 비주얼, `Resources.Load<Sprite>($"Anima/{Objectfile}")`로 로드, 없으면 경고 후 진행), `HpBarWorldFollow`(world-to-screen HP바, CONVERSION_SPEC 5절 방식), `BattleSpawner`(`BattleFormation` 규칙에 따라 `AnimaDatabase`+`AnimaUnit.Initialize`로 스폰, 아군/적군 각 최대 3명 검증)
+- `BattleScene`에 씬 구조 구축: `Lighting`(Light2D, Global — Sprite-Lit-Default 조명용), `HPBarCanvas`(Canvas), `BattleRoot`(BattleSpawner), `Main Camera`에 `CinemachineBrain` 추가, `CM BattleCamera`(`CinemachineCamera`, config 값과 동일하게 정적 배치: pos(0,6,-12) rot(25,0,0))
+- 프리팹 2개 신규 생성: `Assets/Prefabs/Battle/BattleUnitVisual.prefab`(SpriteRenderer + BattleTileImage.mat 재사용 + BattleUnitVisual 스크립트), `Assets/Prefabs/Battle/HpBar.prefab`(배경 Image + Fill 자식 Image(Filled/Horizontal) + HpBarWorldFollow)
+- `BattleSpawner`의 직렬화 필드(config/animaListJson/두 프리팹/hpBarCanvasRoot/trackingCamera/아군·적군 템플릿 이름 배열)를 CLI로 배선
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → **106/106 통과**(신규 순수 로직 없음, 회귀 없음만 확인)
+- `unity command editor_play` → 10초 대기(셰이더 워밍업) 후 `capture_game_view(source=screen)`로 육안 확인: 좌측에 felix1(아군) 3마리, 우측에 irascor1(적군) 3마리가 `BattleFormation` 규칙대로 좌우로 정확히 배치됨, `CM BattleCamera`가 양쪽을 한 프레임에 담음(`eval`로 Main Camera 위치가 CM vcam과 일치·`CinemachineBrain.ActiveVirtualCamera`가 정확함을 확인), 각 유닛 위에 초록색 HP 바가 정상 표시됨
+- `unity command console --level error` → Play 세션 중 신규 런타임 에러 0건(과거 CLI 파라미터 시행착오 로그만 존재)
+- `unity command save_scene` + `grep`으로 `BattleSceneConfig.asset`의 `hpBarYOffset: 1.8` 값이 디스크에 반영됐는지 확인
+### 실패와 수정
+- `set_serialized_field`로 enum(`Light2D.m_LightType`)과 문자열 배열 원소(`allyTemplateNames`)를 JSON 문자열로 감싸 전달(`"Global"`, `"felix1"`)했더니 따옴표 문자까지 포함된 값이 그대로 저장됨 → 따옴표 없이 전달(`Global`, `felix1`)해야 함 → FAIL.md에 기록
+- `BattleSpawner`의 기본 템플릿 이름 배열을 2D 프리팹 파일명 표기(`Felix1`/`Irascor1`, 대문자)로 잘못 넣어 `AnimaList.json`(소문자 `felix1`/`irascor1`)에서 조회 실패 → 스크립트 기본값과 씬에 이미 저장된 값 둘 다 소문자로 수정
+- 2D 원본 스프라이트가 여러 프레임이 든 스프라이트 시트인 줄 모르고 전체를 Single 모드로 가져왔다가, 캡처 스크린샷에서 다닥다닥 붙은 아이콘 격자로 보이는 문제 발생 → 원본 프리팹이 참조하는 특정 서브스프라이트 rect만 크롭하는 방식으로 재작업 → FAIL.md에 기록
+- `Canvas` 컴포넌트를 코드로 추가하면 렌더 모드가 기본값(`ScreenSpaceOverlay`)이 아니라 `WorldSpace`로 생성돼, `HpBarWorldFollow`가 쓰는 스크린좌표가 월드좌표로 잘못 해석되어 HP바가 화면 밖(하늘 높이)으로 사라짐 → `m_RenderMode`를 `Screen Space - Overlay`로 명시적으로 설정해 해결
