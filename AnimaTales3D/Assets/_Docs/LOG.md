@@ -283,3 +283,18 @@
 - 씬/프리팹 변경 없는 순수 C# 작업이라 `save_scene` 대상 없음
 ### 실패와 수정
 - 없음
+
+## [구현] 전투 구도 규칙(최대 3:3, 최소 1:1, 좌측 아군/우측 적군) — 2026-09-05 20:30
+### 프롬프트
+"전투 구도를 최대 3:3 최소 1:1 좌측 아군 우측 적군 구도로 시행할 것이다"
+### 조작 내역
+- 2D 원본 `AllyBattleSetting.SpawnAlly`/`EnemyBattleSetting.SpawnEnemy`를 확인: 인원수별 가로 간격 공식이 이미 존재(3명: `(i*3.5f)-3.5f`, 2명: `(i*3.5f)-1.75f`, 1명: `0f`, 적은 `Random.Range(1,4)`로 1~3명 랜덤 스폰)했고, 아군은 아래 행(y=-2.2)·적군은 위 행(y=1.2)으로 축만 분리했던 것을 확인 — 이번 지시는 그 "행 분리 축"을 좌/우로 바꾸라는 것이므로, 간격 공식 자체는 원본 그대로 재사용하고 좌/우 배치만 새로 설계
+- `Assets/Scripts/BattleScripts/BattleFormation.cs` 신규 생성: `MinUnitsPerSide=1`/`MaxUnitsPerSide=3` 상수, `GetSlotOffset(index, count)`(원본 간격 공식 그대로 이식, 범위 밖 count/index는 `ArgumentOutOfRangeException`), `GetAllySlotPosition(index, count, sideOffset)`(-X쪽)/`GetEnemySlotPosition(...)`(+X쪽) — 진영 중심 기준 좌우 대칭
+- `Assets/Tests/EditMode/BattleFormationTests.cs` 신규 생성: 3/2/1명 간격 공식이 원본과 일치하는지, count/index 범위 밖 예외, 아군·적군 위치가 X축 기준 좌우 대칭이고 Z축(간격축)은 같은 값을 공유하는지 검증 8개
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → **77/77 통과**(기존 69 + 신규 8개)
+- `unity command console --level error` → 최신 컴파일 에러 없음
+- 씬/프리팹을 건드리지 않는 순수 C# 작업이라 `save_scene` 대상 없음. 아직 실제 스폰 MonoBehaviour에는 연결되지 않음(유닛 데이터 모델이 없어 이번 단계에서는 배치 "규칙"만 순수 로직으로 확정)
+### 실패와 수정
+- 없음

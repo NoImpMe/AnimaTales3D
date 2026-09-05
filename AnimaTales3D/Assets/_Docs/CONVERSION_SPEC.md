@@ -52,7 +52,7 @@ Axial(q, r) 좌표계를 새로 도입했다 (`CONVERSION_SPEC.md` 이전 버전
   - [미착수] 실제 유닛 데이터 모델(2D 원본 AnimaDataSO에 대응, BGDatabase 대신 순수 ScriptableObject/JSON으로 재도입하기로 결정됨) — `IBattleUnit` 인터페이스만 존재, 구현체 없음. `SkillData`/`SkillDatabase`는 이번 작업으로 이미 준비됨.
   - [완료, LOG #15] 나머지 5개 테마(Amare/Felix/Havet/Lacrima/Phobia) 적 AI 상황 인지형 개선 — `EnemySituationalAI.ApplySituationalModifiers`(신규, 원본에 없던 로직): 테마별로 상황에 따라 UseSkill 가중치에 배율(2.5배 부스트/0.4배 억제)을 적용한 뒤 기존 `EnemyAI.DecideAction`에 그대로 넘기는 구조. Amare=팀원 HP 50% 이하면 회복 우선, Felix=아직 버프 안 걸었으면 버프 우선, Havet=상대 HP 30% 이하(처치권)면 스킬 우선, Lacrima=생존 상대 2명 이상이면 광역 스킬 우선, Phobia=타겟 미디버프면 디버프 우선. Irascor/미지정 테마는 배율 1(무변화). 테스트 11개 추가, EditMode 69/69 통과
   - [미착수] 턴 순서 시각화: 좌우로 회전하는 회전체("회전체") UI로 표시 — 사람 지시 확정, 프레젠테이션 레이어 착수 시 구현
-  - [확정, 미착수] 전투 구도 규칙: 최대 3:3, 최소 1:1, 좌측 아군/우측 적군 배치 — 2D 원본 `AllyBattleSetting`/`EnemyBattleSetting`에 대응, MonoBehaviour/씬 연결(스폰) 단계에서 반영할 것
+  - [완료, LOG #16] 전투 구도 규칙: 최대 3:3, 최소 1:1, 좌측 아군/우측 적군 배치 — `BattleFormation`(신규 순수 클래스). 2D 원본 `AllyBattleSetting.SpawnAlly`/`EnemyBattleSetting.SpawnEnemy`의 인원수별 가로 간격 공식(3명: i*3.5-3.5, 2명: i*3.5-1.75, 1명: 0)은 그대로 재사용하고, 원본이 위/아래 행으로 나눴던 축만 좌/우 축으로 새로 매핑(사람 지시로 확정된 신규 배치). 아직 MonoBehaviour 스폰 로직에 연결되지는 않음(유닛 데이터 모델 이식 후 진행)
   - [미착수] MonoBehaviour/씬 연결: 스폰(위 구도 규칙 적용), 카메라 연출(Cinemachine 재도입 승인됨), UI(HP바/파서바 등 world-to-screen 방식 + 턴순서 회전체), 별도 BattleScene 전환(구조 결정됨)
 
 ## 7. 다음 작업 순서 (제안, 확정 아님)
