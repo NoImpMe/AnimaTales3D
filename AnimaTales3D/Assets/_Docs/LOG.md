@@ -80,3 +80,19 @@
 해당 없음 ([설계]는 실행하지 않음)
 ### 실패와 수정
 없음
+
+## [수정] 에디터에서 Player 위치에 맞게 타일이 생성되지 않는 문제 — 2026-09-05 13:30
+### 프롬프트
+"에디터에서 Player의 위치에 맞게 타일이 생성되지 않고 있는 점 수정해주고"
+### 조작 내역
+- `unity command get_scene_hierarchy`로 라이브 씬 확인: `Player`(Capsule, `PlayerToken` 컴포넌트 포함) GameObject는 존재하나, `unity command get_serialized_fields --target /DungeonGridManager --component DungeonGridManager`로 확인한 `playerToken` 필드가 `null`(fileID: 0)임을 발견 — `DungeonGridManager.GenerateZoneAt`의 `if (playerToken != null && ...)` 가드에 막혀 구역 생성 시 Player를 시작 타일로 워프시키는 코드가 항상 스킵되고 있었음. 코드 버그가 아니라 인스펙터 배선 누락
+- `unity command save_scene`으로 라이브 에디터의 실제 상태(사용자가 직접 편집 중이던 것)를 디스크에 먼저 동기화 (`isDirty: true` 상태였음)
+- `unity command set_serialized_field --target /DungeonGridManager --component DungeonGridManager --field playerToken --value '{"hierarchyPath":"/Player","type":"PlayerToken"}'`로 필드 연결
+- `unity command save_scene`으로 씬 재저장
+### 검증
+- `unity command get_serialized_fields`로 `playerToken`이 `/Player`의 `PlayerToken` 컴포넌트를 정확히 참조하는지 확인
+- `unity command editor_play` → `unity command eval`로 `GameObject.Find("Player").transform.position` 확인 → `(0.00, 0.50, 0.00)` (Hex(0,0) 시작 타일 위치와 일치, 수정 전 편집 시점 위치였던 `(0, 0, -1.41)`이 아님) → `unity command editor_stop`
+- `unity command run_tests --mode EditMode` (async) → `test_status` 폴링 → 30/30 통과, 0.31초
+- `git diff -- Assets/Scenes/StageScene.unity` → `playerToken` 참조 1줄 변경 + stripped MonoBehaviour 참조 블록 추가뿐임을 확인 (다른 필드/오브젝트 변경 없음)
+### 실패와 수정
+- `unity command` 인수 이름을 추측(`--path`, `--component`)했다가 두 번 실패(`INVALID_COMMAND_ARGS`) → 매번 `unity command --format json`으로 해당 명령의 실제 파라미터 스키마를 조회해 정확한 이름(`--field`)을 확인한 뒤 재시도할 것 → FAIL.md에 기록
