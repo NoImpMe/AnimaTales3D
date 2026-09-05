@@ -313,3 +313,25 @@
 - 씬/프리팹을 건드리지 않는 순수 C# 작업이라 `save_scene` 대상 없음. 실제 회전 애니메이션·아이콘 UI 연결은 미착수
 ### 실패와 수정
 - 없음
+
+## [전환] 유닛 데이터 모델 이식 (AnimaDataSO → AnimaUnit) — 2026-09-05 21:15
+### 프롬프트
+"다음 작업 실시해줘" → CONVERSION_SPEC.md 7절 로드맵 확인 결과 다음 작업은 "유닛 데이터 모델 이식(IBattleUnit 구현체, 순수 ScriptableObject/JSON)"
+### 조작 내역
+- 2D 원본 `AnimaDataSO.cs`를 읽어 원본이 BGDatabase "Anima" 테이블에서 `LoadFromTable`로 읽던 필드(HP/Weight/AP/DP/SP/DropRate/DropGold/Objectfile/Type/Attack/Skill/Mood/IsBoss)와 `CalcStat`/`LevelUp` 공식을 확인
+- 실제 스탯 데이터를 구하기 위해 라이브 BGRepo(`AnimaTales2D/Assets/Resources/bansheegz_database.bytes`)를 조사했으나 .NET BinaryFormatter 커스텀 직렬화 포맷이라 Unity 밖에서 파싱 불가능함을 확인 → 대신 같은 프로젝트 루트에 있던 `새 Microsoft Excel 워크시트.xlsx`(BGDatabaseExcelEditor 애드온이 가져오기/내보내기에 쓰는 형식, 기본 파일명 그대로라 1인 개발자의 편집용 파일로 추정)를 unzip+Python(xml.etree)으로 파싱 — sheet1이 정확히 "Anima" 테이블 구조(_id/name/HP/Weight/AP/DP/SP/DropRate/DropGold/Objectfile/Type/Attack/Skill/Description/Meeted/IsBoss)였고, "Skill" 컬럼 값들이 이미 이식된 `SkillList.json`(LOG #14)의 스킬 이름과 정확히 일치해(예: felix*.Skill="FelixBuff") 데이터 정합성을 교차 확인함
+- 43개 엔트리(Amare/Felix/Havet/Irascor/Lacrima/Phobia 각 0~5단계 + Inanis 5종 + tombstone0)를 Python으로 `Assets/Resources/Anima/AnimaList.json`으로 변환·저장(원본 컬럼명 그대로 사용, 전투 로직에 안 쓰이는 `_id`/`Description`/`Meeted`는 제외)
+- `Assets/Scripts/BattleScripts/AnimaTemplate.cs` 신규 생성: JSON 템플릿 데이터 클래스(SkillData.cs와 동일 패턴)
+- `Assets/Scripts/BattleScripts/AnimaDatabase.cs` 신규 생성: JsonUtility 배열 파싱 우회(SkillDatabase.cs와 동일 패턴) + `Find`
+- `Assets/Scripts/BattleScripts/AnimaStatFormulas.cs` 신규 생성: 원본 `AnimaDataSO.CalcStat` 공식을 순수 함수로 이식
+- `Assets/Scripts/BattleScripts/AnimaUnit.cs` 신규 생성: `ScriptableObject, IBattleUnit` 구현체(원본 AnimaDataSO 대응). `CreateFromTemplate`/`Initialize`(스태미나 100%)/`GetAnima`(스태미나 40%, 원본과 동일)로 생성, `LevelUp()` 포팅. 원본은 BGDatabase "Mood" 컬럼을 읽어 `maxLevel[mood]`로 레벨 상한을 정했으나, 이번에 확보한 엑셀에는 Mood 컬럼이 없어 mood를 항상 0으로 고정(상한이 항상 14) — 메타/레벨업 시스템을 실제로 포팅할 때 재확인 필요하다고 코드 주석·SPEC에 남김. 원본의 두 겹 `Mathf.Ceil` 중첩(예: `Mathf.Ceil(CalcStat(...))`, CalcStat 자체가 이미 Ceil 적용)은 수학적으로 항상 무의미한 항등 연산(`ceil(ceil(x))==ceil(x)`)임을 확인하고 단순화(동작 변화 없음)
+- 전투 로직과 무관한 원본 필드(스킬 아이콘 스프라이트, 인벤토리 슬롯 카운터, 오버월드 위치 인덱스 등)는 스코프 밖이라 제외
+- `Assets/Tests/EditMode/`에 회귀 테스트 3개 파일(21개 테스트) 신규 작성: `AnimaStatFormulasTests.cs`(Python으로 독립 계산한 고정값과 대조), `AnimaDatabaseTests.cs`(실제 AnimaList.json의 일부 항목을 그대로 옮긴 샘플로 파싱 검증), `AnimaUnitTests.cs`(CreateFromTemplate/Initialize/GetAnima/LevelUp/IBattleUnit 계약)
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → **106/106 통과**(기존 85 + 신규 21개)
+- `unity command console --level error` → 최신 컴파일 에러 없음(과거 잔여 Inspector 노이즈만 존재, seq 확인)
+- 씬을 건드리지 않는 순수 C#/JSON 작업이라 `save_scene` 대상 없음
+- ⚠️ **사람 확인 필요**: `AnimaList.json`의 원본 스탯 수치는 라이브 BGRepo가 아니라 프로젝트에 있던 엑셀 내보내기 파일에서 추출한 것이라, 실제 라이브 2D 게임과 완전히 일치한다는 보장은 없음(정황상 편집용 원본 파일로 추정되나 확정 아님). 시간 나실 때 2D 게임에서 felix1/amare1 등 몇 종의 실제 스탯을 한 번 대조해 확인해 주시면 좋겠습니다.
+### 실패와 수정
+- 없음

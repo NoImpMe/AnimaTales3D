@@ -1,0 +1,719 @@
+[
+  {
+    "name": "felix0",
+    "HP": 99941.1,
+    "Weight": 0.7,
+    "AP": 18.02,
+    "DP": 9.01,
+    "SP": 99911.54,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "felix0",
+    "Type": "Felix",
+    "Attack": "FelixAttack",
+    "Skill": [
+      "FelixBuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "irascor0",
+    "HP": 99940.9,
+    "Weight": 0.7,
+    "AP": 99918.9,
+    "DP": 9.02,
+    "SP": 99911.56,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "irascor0",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": false
+  },
+  {
+    "name": "amare0",
+    "HP": 99941.2,
+    "Weight": 0.7,
+    "AP": 18.01,
+    "DP": 8.99,
+    "SP": 99911.54,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "amare0",
+    "Type": "Amare",
+    "Attack": "AmareAttack",
+    "Skill": [
+      "AmareHeal"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "lacrima0",
+    "HP": 99940.8,
+    "Weight": 0.7,
+    "AP": 18.2,
+    "DP": 8.98,
+    "SP": 99911.5,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "lacrima0",
+    "Type": "Lacrima",
+    "Attack": "LacrimaAttack",
+    "Skill": [
+      "LacrimaWideSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "phobia0",
+    "HP": 99940.7,
+    "Weight": 0.7,
+    "AP": 18.4,
+    "DP": 9.07,
+    "SP": 99911.55,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "phobia0",
+    "Type": "Phobia",
+    "Attack": "PhobiaAttack",
+    "Skill": [
+      "PhobiaDebuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "havet0",
+    "HP": 99941.4,
+    "Weight": 0.7,
+    "AP": 18.3,
+    "DP": 9.06,
+    "SP": 99911.51,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "havet0",
+    "Type": "Havet",
+    "Attack": "HavetAttack",
+    "Skill": [
+      "HavetSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "felix1",
+    "HP": 20.0,
+    "Weight": 1.1,
+    "AP": 10.0,
+    "DP": 5.01,
+    "SP": 5.4,
+    "DropRate": 85.0,
+    "DropGold": 100,
+    "Objectfile": "felix1",
+    "Type": "Felix",
+    "Attack": "FelixAttack",
+    "Skill": [
+      "FelixBuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "felix2",
+    "HP": 19.9,
+    "Weight": 1.13,
+    "AP": 10.9,
+    "DP": 5.51,
+    "SP": 5.7,
+    "DropRate": 75.0,
+    "DropGold": 200,
+    "Objectfile": "felix2",
+    "Type": "Felix",
+    "Attack": "FelixAttack",
+    "Skill": [
+      "FelixBuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "felix3",
+    "HP": 19.8,
+    "Weight": 1.16,
+    "AP": 10.8,
+    "DP": 6.01,
+    "SP": 6.0,
+    "DropRate": 50.0,
+    "DropGold": 300,
+    "Objectfile": "felix3",
+    "Type": "Felix",
+    "Attack": "FelixAttack",
+    "Skill": [
+      "FelixBuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "felix4",
+    "HP": 19.3,
+    "Weight": 1.2,
+    "AP": 10.3,
+    "DP": 6.51,
+    "SP": 6.3,
+    "DropRate": 40.0,
+    "DropGold": 400,
+    "Objectfile": "felix4",
+    "Type": "Felix",
+    "Attack": "FelixAttack",
+    "Skill": [
+      "FelixBuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "felix5",
+    "HP": 19.5,
+    "Weight": 1.25,
+    "AP": 10.5,
+    "DP": 7.01,
+    "SP": 6.6,
+    "DropRate": 30.0,
+    "DropGold": 500,
+    "Objectfile": "felix5",
+    "Type": "Felix",
+    "Attack": "FelixAttack",
+    "Skill": [
+      "FelixBuff"
+    ],
+    "IsBoss": true
+  },
+  {
+    "name": "phobia1",
+    "HP": 20.4,
+    "Weight": 1.1,
+    "AP": 10.4,
+    "DP": 5.06,
+    "SP": 5.41,
+    "DropRate": 85.0,
+    "DropGold": 100,
+    "Objectfile": "phobia1",
+    "Type": "Phobia",
+    "Attack": "PhobiaAttack",
+    "Skill": [
+      "PhobiaDebuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "phobia2",
+    "HP": 20.3,
+    "Weight": 1.13,
+    "AP": 10.3,
+    "DP": 5.56,
+    "SP": 5.71,
+    "DropRate": 75.0,
+    "DropGold": 200,
+    "Objectfile": "phobia2",
+    "Type": "Phobia",
+    "Attack": "PhobiaAttack",
+    "Skill": [
+      "PhobiaDebuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "phobia3",
+    "HP": 20.2,
+    "Weight": 1.16,
+    "AP": 10.2,
+    "DP": 6.06,
+    "SP": 6.01,
+    "DropRate": 50.0,
+    "DropGold": 300,
+    "Objectfile": "phobia3",
+    "Type": "Phobia",
+    "Attack": "PhobiaAttack",
+    "Skill": [
+      "PhobiaDebuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "phobia4",
+    "HP": 19.7,
+    "Weight": 1.2,
+    "AP": 9.7,
+    "DP": 6.56,
+    "SP": 6.31,
+    "DropRate": 40.0,
+    "DropGold": 400,
+    "Objectfile": "phobia4",
+    "Type": "Phobia",
+    "Attack": "PhobiaAttack",
+    "Skill": [
+      "PhobiaDebuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "phobia5",
+    "HP": 19.9,
+    "Weight": 1.25,
+    "AP": 9.9,
+    "DP": 7.06,
+    "SP": 6.61,
+    "DropRate": 30.0,
+    "DropGold": 500,
+    "Objectfile": "phobia5",
+    "Type": "Phobia",
+    "Attack": "PhobiaAttack",
+    "Skill": [
+      "PhobiaDebuff"
+    ],
+    "IsBoss": true
+  },
+  {
+    "name": "irascor1",
+    "HP": 21.4,
+    "Weight": 1.1,
+    "AP": 11.9,
+    "DP": 5.02,
+    "SP": 5.0,
+    "DropRate": 85.0,
+    "DropGold": 100,
+    "Objectfile": "irascor1",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": false
+  },
+  {
+    "name": "irascor2",
+    "HP": 21.3,
+    "Weight": 1.13,
+    "AP": 11.8,
+    "DP": 5.52,
+    "SP": 5.3,
+    "DropRate": 75.0,
+    "DropGold": 200,
+    "Objectfile": "irascor2",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": false
+  },
+  {
+    "name": "irascor3",
+    "HP": 21.2,
+    "Weight": 1.16,
+    "AP": 11.7,
+    "DP": 6.02,
+    "SP": 5.6,
+    "DropRate": 50.0,
+    "DropGold": 300,
+    "Objectfile": "irascor3",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": false
+  },
+  {
+    "name": "irascor4",
+    "HP": 20.7,
+    "Weight": 1.2,
+    "AP": 11.2,
+    "DP": 6.52,
+    "SP": 5.9,
+    "DropRate": 40.0,
+    "DropGold": 400,
+    "Objectfile": "irascor4",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": false
+  },
+  {
+    "name": "irascor5",
+    "HP": 20.9,
+    "Weight": 1.25,
+    "AP": 11.4,
+    "DP": 7.02,
+    "SP": 6.2,
+    "DropRate": 30.0,
+    "DropGold": 500,
+    "Objectfile": "irascor5",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": false
+  },
+  {
+    "name": "irascor6",
+    "HP": 21.9,
+    "Weight": 1.275,
+    "AP": 12.4,
+    "DP": 7.52,
+    "SP": 6.5,
+    "DropRate": 20.0,
+    "DropGold": 600,
+    "Objectfile": "irascor6",
+    "Type": "Irascor",
+    "Attack": "IrascorAttack",
+    "Skill": [],
+    "IsBoss": true
+  },
+  {
+    "name": "amare1",
+    "HP": 20.0,
+    "Weight": 1.1,
+    "AP": 10.0,
+    "DP": 5.04,
+    "SP": 5.2,
+    "DropRate": 85.0,
+    "DropGold": 100,
+    "Objectfile": "amare1",
+    "Type": "Amare",
+    "Attack": "AmareAttack",
+    "Skill": [
+      "AmareHeal"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "amare2",
+    "HP": 19.9,
+    "Weight": 1.13,
+    "AP": 9.9,
+    "DP": 5.54,
+    "SP": 5.5,
+    "DropRate": 75.0,
+    "DropGold": 200,
+    "Objectfile": "amare2",
+    "Type": "Amare",
+    "Attack": "AmareAttack",
+    "Skill": [
+      "AmareHeal"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "amare3",
+    "HP": 19.8,
+    "Weight": 1.16,
+    "AP": 9.8,
+    "DP": 6.04,
+    "SP": 5.8,
+    "DropRate": 50.0,
+    "DropGold": 300,
+    "Objectfile": "amare3",
+    "Type": "Amare",
+    "Attack": "AmareAttack",
+    "Skill": [
+      "AmareShield"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "amare4",
+    "HP": 19.3,
+    "Weight": 1.2,
+    "AP": 9.3,
+    "DP": 6.54,
+    "SP": 6.1,
+    "DropRate": 40.0,
+    "DropGold": 400,
+    "Objectfile": "amare4",
+    "Type": "Amare",
+    "Attack": "AmareAttack",
+    "Skill": [
+      "AmareShield"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "amare5",
+    "HP": 19.5,
+    "Weight": 1.25,
+    "AP": 9.5,
+    "DP": 7.04,
+    "SP": 6.4,
+    "DropRate": 30.0,
+    "DropGold": 500,
+    "Objectfile": "amare5",
+    "Type": "Amare",
+    "Attack": "AmareAttack",
+    "Skill": [
+      "AmareWideHeal"
+    ],
+    "IsBoss": true
+  },
+  {
+    "name": "lacrima1",
+    "HP": 20.2,
+    "Weight": 1.1,
+    "AP": 10.2,
+    "DP": 4.99,
+    "SP": 5.5,
+    "DropRate": 85.0,
+    "DropGold": 100,
+    "Objectfile": "lacrima1",
+    "Type": "Lacrima",
+    "Attack": "LacrimaAttack",
+    "Skill": [
+      "LacrimaWideSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "lacrima2",
+    "HP": 20.1,
+    "Weight": 1.13,
+    "AP": 10.1,
+    "DP": 5.49,
+    "SP": 5.8,
+    "DropRate": 75.0,
+    "DropGold": 200,
+    "Objectfile": "lacrima2",
+    "Type": "Lacrima",
+    "Attack": "LacrimaAttack",
+    "Skill": [
+      "LacrimaWideSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "lacrima3",
+    "HP": 20.0,
+    "Weight": 1.16,
+    "AP": 10.0,
+    "DP": 5.99,
+    "SP": 6.1,
+    "DropRate": 50.0,
+    "DropGold": 300,
+    "Objectfile": "lacrima3",
+    "Type": "Lacrima",
+    "Attack": "LacrimaAttack",
+    "Skill": [
+      "LacrimaWideSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "lacrima4",
+    "HP": 19.5,
+    "Weight": 1.2,
+    "AP": 9.5,
+    "DP": 6.49,
+    "SP": 6.4,
+    "DropRate": 40.0,
+    "DropGold": 400,
+    "Objectfile": "lacrima4",
+    "Type": "Lacrima",
+    "Attack": "LacrimaAttack",
+    "Skill": [
+      "LacrimaWideSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "lacrima5",
+    "HP": 19.7,
+    "Weight": 1.25,
+    "AP": 9.7,
+    "DP": 6.99,
+    "SP": 6.7,
+    "DropRate": 30.0,
+    "DropGold": 500,
+    "Objectfile": "lacrima5",
+    "Type": "Lacrima",
+    "Attack": "LacrimaAttack",
+    "Skill": [
+      "LacrimaWideSkill"
+    ],
+    "IsBoss": true
+  },
+  {
+    "name": "havet1",
+    "HP": 20.3,
+    "Weight": 1.1,
+    "AP": 10.3,
+    "DP": 5.03,
+    "SP": 5.1,
+    "DropRate": 85.0,
+    "DropGold": 100,
+    "Objectfile": "havet1",
+    "Type": "Havet",
+    "Attack": "HavetAttack",
+    "Skill": [
+      "HavetSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "havet2",
+    "HP": 20.2,
+    "Weight": 1.13,
+    "AP": 10.2,
+    "DP": 5.53,
+    "SP": 5.4,
+    "DropRate": 75.0,
+    "DropGold": 200,
+    "Objectfile": "havet2",
+    "Type": "Havet",
+    "Attack": "HavetAttack",
+    "Skill": [
+      "HavetSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "havet3",
+    "HP": 20.1,
+    "Weight": 1.16,
+    "AP": 10.1,
+    "DP": 6.03,
+    "SP": 5.7,
+    "DropRate": 50.0,
+    "DropGold": 300,
+    "Objectfile": "havet3",
+    "Type": "Havet",
+    "Attack": "HavetAttack",
+    "Skill": [
+      "HavetSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "havet4",
+    "HP": 19.6,
+    "Weight": 1.2,
+    "AP": 9.6,
+    "DP": 6.53,
+    "SP": 6.0,
+    "DropRate": 40.0,
+    "DropGold": 400,
+    "Objectfile": "havet4",
+    "Type": "Havet",
+    "Attack": "HavetAttack",
+    "Skill": [
+      "HavetSkill"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "havet5",
+    "HP": 19.8,
+    "Weight": 1.25,
+    "AP": 9.8,
+    "DP": 7.03,
+    "SP": 6.3,
+    "DropRate": 30.0,
+    "DropGold": 500,
+    "Objectfile": "havet5",
+    "Type": "Havet",
+    "Attack": "HavetAttack",
+    "Skill": [
+      "HavetSkill"
+    ],
+    "IsBoss": true
+  },
+  {
+    "name": "inanis0",
+    "HP": 0.0,
+    "Weight": 0.0,
+    "AP": 0.0,
+    "DP": 0.0,
+    "SP": 0.0,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "inanis0",
+    "Type": "Inanis",
+    "Attack": "InanisNormalAttack",
+    "Skill": [
+      "InanisBuff"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "inanis1",
+    "HP": 0.0,
+    "Weight": 0.0,
+    "AP": 0.0,
+    "DP": 0.0,
+    "SP": 0.0,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "inanis1",
+    "Type": "Inanis",
+    "Attack": "InanisNormalAttack",
+    "Skill": [
+      "InanisDawnBurst"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "inanis2",
+    "HP": 0.0,
+    "Weight": 0.0,
+    "AP": 0.0,
+    "DP": 0.0,
+    "SP": 0.0,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "inanis2",
+    "Type": "Inanis",
+    "Attack": "InanisNormalAttack",
+    "Skill": [
+      "InanisMusicalBurst"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "inanis3",
+    "HP": 0.0,
+    "Weight": 0.0,
+    "AP": 0.0,
+    "DP": 0.0,
+    "SP": 0.0,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "inanis3",
+    "Type": "Inanis",
+    "Attack": "InanisNormalAttack",
+    "Skill": [
+      "InanisSuperFlash"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "inanis4",
+    "HP": 0.0,
+    "Weight": 0.0,
+    "AP": 0.0,
+    "DP": 0.0,
+    "SP": 0.0,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "inanis4",
+    "Type": "Inanis",
+    "Attack": "InanisNormalAttack",
+    "Skill": [
+      "InanisSummonProton"
+    ],
+    "IsBoss": false
+  },
+  {
+    "name": "tombstone0",
+    "HP": 30.0,
+    "Weight": 1.2,
+    "AP": 0.0,
+    "DP": 6.49,
+    "SP": 0.0,
+    "DropRate": 0.0,
+    "DropGold": 0,
+    "Objectfile": "tombstone0",
+    "Type": "tombstone",
+    "Attack": "no",
+    "Skill": [
+      "no"
+    ],
+    "IsBoss": false
+  }
+]
