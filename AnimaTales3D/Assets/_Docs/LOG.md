@@ -140,3 +140,16 @@
 - `unity command editor_stop` → `git status --short` → 씬 파일 변경 없이 스크립트 2개만 변경됨을 확인
 ### 실패와 수정
 - 없음
+
+## [수정] Player 이동 시 이동 방향으로 회전 — 2026-09-05 15:20
+### 프롬프트
+"Player가 이동할 때 그 방향으로 회전해서 바라보게 해줘"
+### 조작 내역
+- `Assets/Scripts/StageScripts/PlayerToken.cs`의 `MoveRoutine` 수정: 이동 시작 시 `startRot`을 캐시하고, `targetPos - startPos`를 Y=0으로 평탄화한 `direction`으로 `Quaternion.LookRotation(direction)`을 `targetRot`으로 계산(제자리 이동인 경우 `direction == Vector3.zero`면 회전 유지). 매 프레임 `Quaternion.Slerp(startRot, targetRot, t)`로 위치 Lerp와 같은 `t`를 공유해 이동과 회전이 동시에 끝나도록 함. 루프 종료 후 `targetRot`으로 스냅
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command console --level error` → 새로 발생한 에러 없음 (기존 Inspector 노이즈만)
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과, 0.29초
+- `unity command editor_play` → `eval`로 이동 전 `eulerAngles == (0,0,0)`(회전 이력 없음) 확인 후 `token.MoveTo(...)` 호출 → 이동 완료 후 `eulerAngles.y == 239.99`(≈240°) 확인 — 헥사곤 6방향은 60°씩 나뉘므로 60의 배수(240°)로 정확히 떨어진 것은 실제 타일 방향을 향해 올바르게 회전했다는 강한 증거로 판단. `editor_stop` 후 `git status`로 씬 변경 없이 스크립트 1개만 변경됨을 확인
+### 실패와 수정
+- 없음

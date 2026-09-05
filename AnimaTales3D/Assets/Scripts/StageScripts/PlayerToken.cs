@@ -31,8 +31,9 @@ public class PlayerToken : MonoBehaviour
     }
 
     /// <summary>
-    /// 부드럽게 타일 간 이동. Animator가 있으면 이동 시작/종료에 맞춰 "IsMoving"을 토글하고,
-    /// 카메라(CameraDragController)가 있으면 같은 시간 동안 같은 만큼 함께 움직여 따라오게 한다.
+    /// 부드럽게 타일 간 이동. 이동 방향을 바라보도록 회전하고, Animator가 있으면 이동 시작/종료에
+    /// 맞춰 "IsMoving"을 토글하며, 카메라(CameraDragController)가 있으면 같은 시간 동안 같은 만큼
+    /// 함께 움직여 따라오게 한다.
     /// </summary>
     public void MoveTo(Vector3 tilePosition)
     {
@@ -56,6 +57,10 @@ public class PlayerToken : MonoBehaviour
     private IEnumerator MoveRoutine(Vector3 targetPos)
     {
         Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+        Vector3 direction = targetPos - startPos;
+        direction.y = 0f;
+        Quaternion targetRot = direction != Vector3.zero ? Quaternion.LookRotation(direction) : startRot;
         float elapsed = 0f;
 
         if (animator != null) animator.SetBool(IsMovingParam, true);
@@ -69,10 +74,12 @@ public class PlayerToken : MonoBehaviour
             flatPos.y += Mathf.Sin(t * Mathf.PI) * hopHeight; // 포물선 형태로 살짝 튐
 
             transform.position = flatPos;
+            transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
             yield return null;
         }
 
         transform.position = targetPos;
+        transform.rotation = targetRot;
 
         if (animator != null) animator.SetBool(IsMovingParam, false);
     }
