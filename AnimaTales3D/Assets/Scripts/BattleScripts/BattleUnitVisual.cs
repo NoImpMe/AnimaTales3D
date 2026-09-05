@@ -21,4 +21,10 @@ public class BattleUnitVisual : MonoBehaviour
         }
         spriteRenderer.sprite = sprite;
     }
+
+    private void OnMouseDown()
+    {
+        if (BoundUnit == null) return;
+        BattleController.Instance?.OnUnitClicked(BoundUnit);
+    }
 }

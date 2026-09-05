@@ -358,3 +358,29 @@
 - `BattleSpawner`의 기본 템플릿 이름 배열을 2D 프리팹 파일명 표기(`Felix1`/`Irascor1`, 대문자)로 잘못 넣어 `AnimaList.json`(소문자 `felix1`/`irascor1`)에서 조회 실패 → 스크립트 기본값과 씬에 이미 저장된 값 둘 다 소문자로 수정
 - 2D 원본 스프라이트가 여러 프레임이 든 스프라이트 시트인 줄 모르고 전체를 Single 모드로 가져왔다가, 캡처 스크린샷에서 다닥다닥 붙은 아이콘 격자로 보이는 문제 발생 → 원본 프리팹이 참조하는 특정 서브스프라이트 rect만 크롭하는 방식으로 재작업 → FAIL.md에 기록
 - `Canvas` 컴포넌트를 코드로 추가하면 렌더 모드가 기본값(`ScreenSpaceOverlay`)이 아니라 `WorldSpace`로 생성돼, `HpBarWorldFollow`가 쓰는 스크린좌표가 월드좌표로 잘못 해석되어 HP바가 화면 밖(하늘 높이)으로 사라짐 → `m_RenderMode`를 `Screen Space - Overlay`로 명시적으로 설정해 해결
+
+## [구현] 실제 턴 진행 연결 (플레이어 입력 → 스킬 선택 → 적 AI 응답 → 승패 판정) — 2026-09-05 22:20
+### 프롬프트
+"다음 작업 실실해"(다음 작업 실시해) → CONVERSION_SPEC.md 7절 로드맵 확인 결과 다음 작업은 "실제 턴 진행 연결"
+### 조작 내역
+- 2D 원본 `BattleManager.cs`(1650줄+)의 턴 진행 핵심 로직(`SetState`)을 확인: `turnList[0]`이 현재 턴, 아군이면 UI 버튼 활성화, 적이면 자동 AI. 다만 이 파일 전체는 EventSystem 버튼 셀렉트·DamageNumberPro·TMPro가 깊이 얽힌 God Object라(LOG #4 "레이어 분리 우선" 결정과 상충) 끝까지 읽지 않고, 대신 이미 이식된 순수 로직(TurnManager/BuffManager/BattleMath/EnemyAI)을 재사용해 3D UI(클릭 타게팅)로 새로 설계
+- `Assets/Scripts/BattleScripts/AnimaUnit.cs`에 `SetSpeed(float)` 추가 — Speed는 IBattleUnit 계약상 읽기 전용이라 버프가 값을 바꾸려면 세터가 필요
+- `Assets/Scripts/BattleScripts/BattleUnitVisual.cs`에 `OnMouseDown()` 추가 — 클릭 시 `BattleController.Instance?.OnUnitClicked(BoundUnit)` 호출
+- `Assets/Scripts/BattleScripts/BattleController.cs` 신규 생성(핵심 로직): 라운드제 턴 큐(Speed 내림차순, 사망 유닛 제외, 큐 소진 시 재정렬해 새 라운드), 아군 턴(공격/스킬 버튼 → 대상 클릭 대기 → 해석), 적 턴(`EnemyAI.DecideAction`+`EnemySituationalAI.ApplySituationalModifiers` 자동 결정 → 자동 대상 선정 → 해석), 스킬 타입별 분기(SingleAttack/Heal/Shield/Buff/Debuff — Multi*는 이번 로스터가 안 써서 다음 단계로 미룸), 버프/디버프 적용 시 `tmpAbility`에 원래 값 저장 후 만료 시 복원(`BuffManager.TickOne`이 "행동 종료 시점"에 도는 타이밍 그대로), 실드 우선 소모, 전멸 판정(Win/Defeat)
+  - `BattleSpawner.Start()` 끝에 `BattleController.Instance?.BeginBattle()` 추가 — `Start()` 간 실행 순서는 보장 안 되므로, `Awake()`가 모든 `Start()`보다 먼저 끝난다는 보장을 이용해 `Instance` 세팅 후 명시적으로 스폰 완료 시점에 시작시킴
+- 씬에 `BattleControllerObj`(BattleController) + UI(공격/스킬 버튼 2개, 턴 상태 텍스트, 결과 텍스트) 생성·배선. `BattleUnitVisual.prefab`에 `BoxCollider`(1.8×2.2×0.5) 추가해 클릭 타게팅 가능하게 함
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → **106/106 통과**(신규 순수 로직 없이 기존 로직 재사용이라 회귀 없음만 확인)
+- `unity command editor_play` 후 `eval`로 전체 흐름 검증(felix1 x3 vs irascor1 x3 데모):
+  - 초기 턴 순서: Speed 86(felix1) 3명이 Speed 80(irascor1) 3명보다 먼저 — 정상
+  - `OnAttackButtonClicked()`+`OnUnitClicked(enemy)` → 적 HP 339→193.48로 정확히 감소, 턴이 다음 아군으로 넘어감
+  - `OnSkillButtonClicked()`+`OnUnitClicked(ally)` → FelixBuff(SingleBuff) 적용, 대상 Damage 159→286.49(=159×CalcBuffRatio(159,1.77)=159×1.8018, 정확히 일치)
+  - 아군 3명 행동 후 적 턴(EnemyTurn)으로 정상 전환
+  - 적 AI(Irascor, 항상 공격 특례) 자동 실행 → 무작위 생존 아군 공격, HP 정확히 감소
+  - 라운드 소진 시 생존 유닛만으로 재정렬해 새 라운드 자동 시작 확인
+  - 8회 반복 후 아군 전멸 → `Phase=Finished State=Defeat`, `resultText.text=="패배..."`·`activeSelf==true`, 공격/스킬 버튼 `interactable==false` 전부 정확
+- ⚠️ **화면 렌더링 육안 확인 못 함**: Play 진입 후 에디터 창이 OS 포커스를 잃어 `Time.frameCount`가 멈춤(FAIL.md 기존 이슈) → `editor_stop`→`editor_play` 재진입, `SetForegroundWindow` 재포커스 모두 시도했으나 프레임 루프가 재개되지 않음 → 적 턴 해석처럼 코루틴(`yield return null`)에 의존하는 부분은 `System.Reflection`으로 private 메서드(`ResolveEnemyTurn`)를 직접 호출해 우회 검증(실제 프로덕션 코드 실행, 로직 정확성은 확인됨). 다만 화면에 정상적으로 그려지는지(스프라이트/HP바/텍스트 표시 위치 등)는 사람이 직접 에디터에서 Play 후 버튼을 눌러 육안으로 확인 필요
+### 실패와 수정
+- legacy `UnityEngine.UI.Text`의 폰트 크기/정렬을 `m_FontSize`/`m_Alignment`로 바로 설정하려다 실패 → `m_FontData.m_FontSize`/`m_FontData.m_Alignment`(중첩 구조체 하위)로 수정 → FAIL.md에 기록
+- Play 모드 프레임 루프가 멈춘 상태에서 재포커스/재진입 모두 실패 → private 메서드 리플렉션 호출로 우회 검증하는 방법을 확립 → FAIL.md에 기록

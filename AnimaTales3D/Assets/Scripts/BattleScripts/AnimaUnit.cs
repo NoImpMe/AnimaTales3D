@@ -49,6 +49,9 @@ public class AnimaUnit : ScriptableObject, IBattleUnit
     public float Speed => speed;
     public bool TurnCheck => TurnCheckFlag;
 
+    /// <summary>버프/디버프가 Speed를 바꿀 때 쓰는 세터. Speed는 IBattleUnit 계약상 읽기 전용 프로퍼티라 직접 대입이 안 되므로 필요.</summary>
+    public void SetSpeed(float value) => speed = value;
+
     /// <summary>스태미나 비율(0~1)을 지정해 템플릿으로부터 유닛을 생성한다. 2D 원본 LoadFromTable에 대응.</summary>
     public static AnimaUnit CreateFromTemplate(AnimaTemplate template, int level, float staminaFraction, bool isAlly)
     {

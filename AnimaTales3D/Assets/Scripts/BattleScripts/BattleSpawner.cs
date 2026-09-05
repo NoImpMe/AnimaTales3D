@@ -2,9 +2,10 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 전투 씬 진입 시 대형 규칙(BattleFormation)에 따라 아군/적군을 스폰하는 구조 스켈레톤.
-/// 이번 단계는 씬 구조·스폰·카메라 프레이밍·기본 HP UI까지만 다룬다 — 실제 턴 진행(플레이어 입력 →
-/// 스킬 선택 → 적 AI 응답 → 승패 판정)은 아직 연결되지 않았다(다음 단계에서 진행 예정).
+/// 전투 씬 진입 시 대형 규칙(BattleFormation)에 따라 아군/적군을 스폰한다.
+/// 스폰이 끝나면 <see cref="BattleController.BeginBattle"/>을 호출해 실제 턴 진행을 시작시킨다 —
+/// BattleController.Awake()가 먼저 Instance를 세팅해둔다는 보장(모든 Awake가 모든 Start보다 먼저 끝남)에
+/// 기대어, Start() 간의 실행 순서(보장되지 않음)에 의존하지 않고 명시적으로 순서를 맞춘다.
 /// </summary>
 public class BattleSpawner : MonoBehaviour
 {
@@ -29,6 +30,8 @@ public class BattleSpawner : MonoBehaviour
 
         SpawnSide(templates, allyTemplateNames, isAlly: true, allyUnits);
         SpawnSide(templates, enemyTemplateNames, isAlly: false, enemyUnits);
+
+        BattleController.Instance?.BeginBattle();
     }
 
     private void SpawnSide(List<AnimaTemplate> templates, string[] names, bool isAlly, List<AnimaUnit> resultList)
