@@ -227,3 +227,24 @@
 - `git status --short`로 4개 프리팹 + Config 에셋 + 스크립트 2개(Config, 테스트)만 변경됨을 확인
 ### 실패와 수정
 - `unity command set_transform`으로 **프리팹 에셋**(씬 오브젝트가 아님)을 수정한 뒤 저장하지 않고 바로 `unity command recompile`을 실행 → 컴파일에 따른 도메인 리로드가 저장 안 된 인메모리 프리팹 변경분을 되돌려버림(4개 프리팹 스케일이 전부 원래값으로 복원됨). 반면 같은 순서로 수정한 `ScriptableObject`(Config)의 `set_serialized_field` 값은 살아남음 — 에셋 종류/명령에 따라 자동 저장 여부가 다른 것으로 보임 → **프리팹/에셋을 `set_transform`·`set_serialized_field`로 고친 뒤에는 recompile이나 Play 진입 전에 반드시 `eval`로 `UnityEditor.AssetDatabase.SaveAssets()`를 명시적으로 호출해 디스크에 반영됐는지(`grep`으로 실제 파일 확인) 검증할 것** → FAIL.md에 기록
+
+## [전환] 전투 시스템 순수 로직 레이어 포팅 (턴/상태/버프/데미지공식/적AI) — 2026-09-05 19:00
+### 프롬프트
+"다음 작업으로 넘어가자" → CONVERSION_SPEC.md 7절 확인 결과 "전투 씬 포팅 착수"가 다음 작업. LOG #4([설계])에서 제시했던 4개 결정 필요 항목을 재확인해 확정: (1) 방안 1(레이어 분리 우선), (2) 전투 카메라는 Cinemachine 재도입(패키지 추가 승인됨), (3) 데이터 모델은 순수 ScriptableObject/JSON(기본값), (4) 별도 BattleScene 전환
+### 조작 내역
+- 2D 원본 프로젝트 위치 파악: `claude/AnimaTales2D_스크립트_요약.md`는 요약본일 뿐이라, 실제 소스가 필요해 디스크 검색 → `C:\Users\Minwoo\Desktop\Anima\AnimaTales2D`(원본 프로젝트)를 찾아 `Assets/Script/BattleScript/`의 `TurnManager.cs`/`BattleState.cs`/`Buff.cs`/`BuffManager.cs`/`AnimaActions.cs`/`EnemyActions.cs`/`AnimaDataSO.cs` 원본을 직접 읽고 정확한 수식·분기 조건을 확인 (요약본에는 없는 세부 — 예: 적 스킬 데미지가 weight를 안 곱하는 것, 적 회복량이 weight 대신 고정 1.13을 곱하는 것, `CalcDebuffRatio`의 `stat` 매개변수가 원본에서도 안 쓰이는 죽은 매개변수라는 것 등 — 은 요약본만으로는 알 수 없어 원본을 직접 봐야 했음)
+- `Assets/Scripts/BattleScripts/`(기존 빈 폴더)에 순수 C# 클래스 6개 신규 작성:
+  - `BattleState.cs` — 5단계 enum(대소문자만 프로젝트 컨벤션에 맞춰 PascalCase로, 동작은 동일)
+  - `IBattleUnit.cs` — `TurnManager`가 필요로 하는 최소 계약(`Speed`, `TurnCheck`). 실제 유닛 데이터 모델(AnimaDataSO 대응)은 별도 작업으로 미룸
+  - `TurnManager.cs` — 제네릭 `TurnManager<TUnit> where TUnit : IBattleUnit`. `UpdateTurnList`/`CheckChanged`/`OnLevelUpTurnChanged` 전부 원본과 동일한 알고리즘(인덱스 기반 제거 방식 포함) 이식
+  - `Buff.cs`/`BuffManager.cs` — 제네릭 `Buff<TUnit>`/`BuffManager<TUnit> where TUnit : class`. 원본의 `Dictionary<Buff,int>`는 값(distinct)이 어디서도 안 읽히는 죽은 값이라 `List<Buff<TUnit>>`로 단순화(동작 동일). "같은 버프 타입" 판정이 문자열 내용이 아니라 `List<string>` 참조 동일성이라는 원본의 미묘한 동작은 그대로 보존
+  - `BattleMath.cs` — `CalcAttackDamage`/`CalcAllySkillDamage`/`CalcEnemySkillDamage`/`CalcAllyHealAmount`/`CalcEnemyHealAmount`/`CalcShieldAmount`/`CalcBuffRatio`/`CalcDebuffRatio`. 원본이 `UnityEngine.Random.Range`를 내부 호출하던 것을 `randomRoll` 매개변수로 분리해 순수 함수화(테스트 가능하도록) — 실제 게임 값(0.95~1.11 랜덤)은 나중에 MonoBehaviour 배선 시 호출부에서 넘겨주면 원본과 동일하게 동작
+  - `EnemyAI.cs` — `BattleActionType` enum + `WeightedAction` + `EnemyAI.DecideAction`(가중 랜덤, `randomRoll`도 매개변수화, "Irascor" 타입 무조건 공격 예외 포함)
+- `Assets/Tests/EditMode/`에 회귀 테스트 4개 파일(25개 테스트) 신규 작성: `TurnManagerTests.cs`(5), `BuffManagerTests.cs`(6), `BattleMathTests.cs`(9), `EnemyAITests.cs`(5) — `BattleMathTests`는 2D 원본 수식을 테스트 코드 안에 그대로 재현해 "기대값"으로 삼아 이식 결과와 직접 비교
+- `unity command recompile` → `recompile_status` 폴링 → `completed` (중간에 파이프라인 서버 연결이 한 번 끊겼다 재연결됨 — 일시적 현상, 재시도로 해결)
+### 검증
+- `unity command console --level error` → 새로 발생한 에러 없음
+- `unity command run_tests --mode EditMode`(async) → **55/55 통과**(기존 30개 + 신규 25개), 0.48초
+- `git status --short` → 씬/프리팹 변경 없이 신규 스크립트 6개 + 신규 테스트 4개 파일만 추가됨을 확인
+### 실패와 수정
+- 없음

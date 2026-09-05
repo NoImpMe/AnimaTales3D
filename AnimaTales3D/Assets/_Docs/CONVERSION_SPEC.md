@@ -1,7 +1,7 @@
 # CONVERSION_SPEC.md — 2D→3D 전환 사양
 
-**상태**: 진행 중. 오버월드(좌표계·카메라·절차적 생성)는 이미 구현됨 + EditMode 테스트 보강 완료 + 생성 수치 Config 이전 완료. 전투 씬은 아직 미착수.
-(2026-09-05 기준: LOG.md #2·#3·#7 작업 반영해 이 문서를 갱신함)
+**상태**: 진행 중. 오버월드(좌표계·카메라·절차적 생성)는 이미 구현됨 + EditMode 테스트 보강 완료 + 생성 수치 Config 이전 완료. 전투 씬은 순수 로직 레이어(턴/상태/버프/데미지공식/적AI) 포팅 착수 — 스폰/카메라/UI 등 프레젠테이션 레이어는 아직 미착수.
+(2026-09-05 기준: LOG.md #2·#3·#7·#13 작업 반영해 이 문서를 갱신함)
 
 ## 1. 전환 범위
 좌표계·이동·카메라까지 포함해 재설계한다. 오버월드는 원본(고정 스테이지 배치)보다 넓은 범위로 재설계됐다 — 절차적 구역 생성은 의도한 설계로 승인됨(아래 3절 참고). 전투 씬은 아직 손대지 않았다.
@@ -46,9 +46,15 @@ Axial(q, r) 좌표계를 새로 도입했다 (`CONVERSION_SPEC.md` 이전 버전
 - `BattleScript/Elite/`, `StageScript`의 `SpawnStage`/`SpawnLine`/`StageNode`는 전체 주석 처리된 죽은 코드다. 현재 라이브 코드와 혼동하지 않는다.
 - [해결됨, LOG #2] `HexCoord`/`DungeonGridManager`의 순수 로직은 `DungeonZonePlanner`로 분리되어 EditMode 테스트 26개로 커버됨.
 - [해결됨, LOG #3] `wallChance`/`battleChance`/`hexSize`/`zoneRadius`는 `DungeonGenerationConfig` ScriptableObject로 이전됨 (테스트 4개 포함, 총 EditMode 테스트 30개).
-- **[신규] 전투 시스템(원본 BattleScript 35개 스크립트)이 하나도 포팅되지 않음** — `DungeonGridManager.EnterBattle()`은 임시로 `OnBattleWon`을 즉시 호출하는 스텁 상태.
+- **전투 시스템(원본 BattleScript 35개 스크립트) 포팅 진행 중** — `DungeonGridManager.EnterBattle()`은 아직 임시로 `OnBattleWon`을 즉시 호출하는 스텁 상태.
+  - [완료, LOG #13] 순수 로직 레이어: `TurnManager<TUnit>`/`BattleState`/`Buff<TUnit>`·`BuffManager<TUnit>`/`BattleMath`(데미지·회복·실드·버프 공식)/`EnemyAI`(가중 랜덤 행동 결정) — 2D 원본과 동일 수식으로 회귀 테스트 25개 통과. 원본의 아군/적 간 비대칭(버그성 동작 포함: 적 스킬 데미지는 weight 미적용, 적 회복량은 weight 대신 고정 1.13 곱함, TurnManager.OnLevelUpTurnChanged의 인덱스 기반 제거)은 그대로 보존
+  - [미착수] 실제 유닛 데이터 모델(2D 원본 AnimaDataSO/SkillData에 대응, BGDatabase 대신 순수 ScriptableObject/JSON으로 재도입하기로 결정됨) — `IBattleUnit` 인터페이스만 존재, 구현체 없음
+  - [미착수] MonoBehaviour/씬 연결: 스폰, 카메라 연출(Cinemachine 재도입 승인됨), UI(HP바/파서바 등 world-to-screen 방식), 별도 BattleScene 전환(구조 결정됨)
 
 ## 7. 다음 작업 순서 (제안, 확정 아님)
 1. ~~`HexCoord`/`DungeonGridManager`에 EditMode 테스트 보강 + LOG.md에 소급 기록~~ — 완료 (LOG #2)
 2. ~~`wallChance`/`battleChance`/`hexSize`/`zoneRadius` → ScriptableObject Config로 이전~~ — 완료 (LOG #3)
-3. 전투 씬 포팅 착수 (BattleManager 등, 카메라·UI 설계 포함) — 다음 작업
+3. 전투 씬 포팅 (방안 1: 레이어 분리 우선, LOG #4에서 확정)
+   1. ~~순수 로직 레이어(턴/상태/버프/데미지공식/적AI) 포팅 + 회귀 테스트~~ — 완료 (LOG #13)
+   2. 유닛 데이터 모델 이식 (`IBattleUnit` 구현체, 순수 ScriptableObject/JSON) — 다음 작업
+   3. MonoBehaviour/씬 연결: 스폰, 카메라(Cinemachine), UI(world-to-screen), 별도 BattleScene 전환
