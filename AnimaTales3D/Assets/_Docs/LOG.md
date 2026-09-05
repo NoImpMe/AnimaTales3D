@@ -298,3 +298,18 @@
 - 씬/프리팹을 건드리지 않는 순수 C# 작업이라 `save_scene` 대상 없음. 아직 실제 스폰 MonoBehaviour에는 연결되지 않음(유닛 데이터 모델이 없어 이번 단계에서는 배치 "규칙"만 순수 로직으로 확정)
 ### 실패와 수정
 - 없음
+
+## [구현] 턴 순서 좌우 회전 캐러셀 배치 계산 — 2026-09-05 20:45
+### 프롬프트
+"좌 우로 회전하는 회전체를 통해서 표시하고 싶어" (LOG #13에서 제안했던 게임적 개선안 중 3번, 사람 승인)
+### 조작 내역
+- 2D 원본에는 턴 순서를 시각화하는 UI 자체가 없었음(제안 항목이었으므로 원본 대응 코드 없음) — 순수 신규 설계. 실제 유닛 데이터 모델·씬 연결이 아직 없는 단계라, 회전 애니메이션이나 아이콘 프리팹 같은 MonoBehaviour/UI는 그대로 미루고 "배치 계산"만 순수 함수로 분리(기존 BattleFormation과 같은 패턴)
+- `Assets/Scripts/BattleScripts/TurnOrderCarouselLayout.cs` 신규 생성: `GetSlotAngleOffset(index, currentIndex, totalCount, angleStepDegrees)`(현재 턴 기준 각 슬롯의 각도 오프셋 — 지나간 유닛은 음수/왼쪽, 남은 유닛은 양수/오른쪽), `GetSlotLocalPosition(...)`(그 각도를 반지름 원 위의 로컬 좌표로 변환, 정면=−Z), `GetCarouselYRotation(currentIndex, angleStepDegrees)`(현재 턴 유닛이 항상 정면에 오도록 회전체 전체에 걸어야 할 Y회전각)
+- `Assets/Tests/EditMode/TurnOrderCarouselLayoutTests.cs` 신규 생성: 각도 오프셋의 부호(지나감/현재/남음)와 크기, count<=0 예외, 정면(0도)·90도 지점의 삼각함수 좌표 변환, 회전체 Y회전각 계산 검증 8개
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode editor` → **85/85 통과**(기존 77 + 신규 8개)
+- `unity command console --level error` → 최신 컴파일 에러 없음(과거 잔여 Inspector 노이즈만 존재, seq 확인)
+- 씬/프리팹을 건드리지 않는 순수 C# 작업이라 `save_scene` 대상 없음. 실제 회전 애니메이션·아이콘 UI 연결은 미착수
+### 실패와 수정
+- 없음
