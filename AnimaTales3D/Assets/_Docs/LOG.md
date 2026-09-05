@@ -211,3 +211,19 @@
 ### 실패와 수정
 - Play 진입 직후 3초 이내 캡처한 스크린샷은 `Sprite-Lit-Default` 셰이더 워밍업이 안 끝나 흰 배경으로 보일 수 있음 → 이 조합(2D Lit 셰이더 + 3D 씬)을 스크린샷으로 검증할 때는 Play 진입 후 최소 5~10초 대기 후 캡처할 것 → FAIL.md에 기록
 - `Assets/Resources/Tile/`의 4개 PNG(Havet/Irascor/Lacrima/Phobia)가 반복적인 임포트 설정 변경 과정에서 원본 1254px → 1024px로 축소 저장됨(내용·알파는 정상, 해상도만 축소). 원인 미상이나 화질에 큰 지장은 없어 그대로 둠 — 필요하면 원본 이미지를 재배치해서 다시 임포트할 것
+
+## [수정] 타일 크기 2배 확대 + 간격 비례 확장 — 2026-09-05 18:00
+### 프롬프트
+"타일크기를 2배 정도 키워주고 크기가 커진 만큼 간격도 띄워줘"
+### 조작 내역
+- 사전 계산: 타일 프리팹들은 이미 "본체(눌린 스케일) + 보정용 부모(장식/이미지를 실제 단위로 배치)" 구조라, 루트 오브젝트의 스케일을 각 축 모두 동일 배수(k)로 곱하면 하위 장식·스프라이트까지 전부 같은 배수로 커진다는 것을 확인(보정용 부모의 자체 스케일은 안 건드려도 됨) — 이를 바탕으로 4개 타일 프리팹 루트 스케일을 `(1, 0.2, 1)` → `(2, 0.4, 2)`로 2배
+- `unity command set_transform`으로 `HexTile.prefab`/`HexTile_Village.prefab`/`HexTile_Battle.prefab`/`HexTile_Boss.prefab` 4개 전부 루트 스케일 변경
+- `unity command set_serialized_field`로 `Assets/Configs/DungeonGenerationConfig.asset`의 `hexSize`를 `1.2` → `2.4`로 변경 (타일 간 간격은 `HexCoord.ToWorldPosition(hexSize)`가 전담하므로 이 값 하나로 간격이 비례 확장됨)
+- `Assets/Scripts/StageScripts/DungeonGenerationConfig.cs`의 `hexSize` 기본값도 `1.2f` → `2.4f`로 동기화(기존 관례대로 클래스 기본값 = 실제 에셋 값 유지), `Assets/Tests/EditMode/DungeonGenerationConfigTests.cs`의 기대값도 갱신
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과 (여러 차례)
+- `unity command capture_game_view`(Play 진입 10초 후 캡처)로 모든 타입(마을/전투/보스/벽/빈)이 이전 대비 약 2배 크게, 간격도 넓게 배치된 것을 육안 확인
+- `git status --short`로 4개 프리팹 + Config 에셋 + 스크립트 2개(Config, 테스트)만 변경됨을 확인
+### 실패와 수정
+- `unity command set_transform`으로 **프리팹 에셋**(씬 오브젝트가 아님)을 수정한 뒤 저장하지 않고 바로 `unity command recompile`을 실행 → 컴파일에 따른 도메인 리로드가 저장 안 된 인메모리 프리팹 변경분을 되돌려버림(4개 프리팹 스케일이 전부 원래값으로 복원됨). 반면 같은 순서로 수정한 `ScriptableObject`(Config)의 `set_serialized_field` 값은 살아남음 — 에셋 종류/명령에 따라 자동 저장 여부가 다른 것으로 보임 → **프리팹/에셋을 `set_transform`·`set_serialized_field`로 고친 뒤에는 recompile이나 Play 진입 전에 반드시 `eval`로 `UnityEditor.AssetDatabase.SaveAssets()`를 명시적으로 호출해 디스크에 반영됐는지(`grep`으로 실제 파일 확인) 검증할 것** → FAIL.md에 기록

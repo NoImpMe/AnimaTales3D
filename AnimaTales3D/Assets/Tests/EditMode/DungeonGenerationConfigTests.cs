@@ -18,7 +18,7 @@ public class DungeonGenerationConfigTests
     {
         var config = CreateDefault();
 
-        Assert.AreEqual(1.2f, config.hexSize, 0.0001f);
+        Assert.AreEqual(2.4f, config.hexSize, 0.0001f);
         Assert.AreEqual(3, config.zoneRadius);
         Assert.AreEqual(0.25f, config.wallChance, 0.0001f);
         Assert.AreEqual(0.45f, config.battleChance, 0.0001f);

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 17ecb83a04ecebd4cadf076968446e69, type: 3}
   m_Name: DungeonGenerationConfig
   m_EditorClassIdentifier: AnimaTales3D.Runtime::DungeonGenerationConfig
-  hexSize: 1.2
+  hexSize: 2.4
   zoneRadius: 3
   wallChance: 0.25
   battleChance: 0.45
