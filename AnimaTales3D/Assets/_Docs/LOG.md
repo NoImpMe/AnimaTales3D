@@ -96,3 +96,30 @@
 - `git diff -- Assets/Scenes/StageScene.unity` → `playerToken` 참조 1줄 변경 + stripped MonoBehaviour 참조 블록 추가뿐임을 확인 (다른 필드/오브젝트 변경 없음)
 ### 실패와 수정
 - `unity command` 인수 이름을 추측(`--path`, `--component`)했다가 두 번 실패(`INVALID_COMMAND_ARGS`) → 매번 `unity command --format json`으로 해당 명령의 실제 파라미터 스키마를 조회해 정확한 이름(`--field`)을 확인한 뒤 재시도할 것 → FAIL.md에 기록
+
+## [구현] Player를 Capsule에서 Character 모델로 교체 + 이동 시 점프(이동) 애니메이션 재생 — 2026-09-05 14:30
+### 프롬프트
+"Player가 지금 Capsule로 되어있는데 Resources/Character 폴더의 Player로 바꿔서 타일을 이동할 때 점프 애니메이션이 보이도록 해줘"
+### 조작 내역
+- `Assets/Resources/Character/Player.fbx` 조사: `animationType: Human`이지만 임베드된 실제 애니메이션(`rigify_clip`, 89프레임)은 Hips 루트 위치·다리 교차 패턴을 분석한 결과 걷기 사이클이지 점프가 아님을 확인. 점프 클립 부재 → 사람에게 진행 방식 질의(AskUserQuestion)
+- 사용자가 `Assets/Resources/Character/playerwithanim/PlayerWithAnim.fbx`(직접 추가한 애셋) 확인 요청 → 임베드 클립 4개(`01a06fc6-...`/Idle 추정, `Walking`, `Running`, `01a06fc8-...`) 전부 조사. `01a06fc8-...`는 Hips.y가 -0.15→-1.64로 한 방향으로만 떨어지고 복귀하지 않아 점프(상승 후 착지)가 아니라 쓰러짐류로 판단. 점프 클립 부재를 재차 사람에게 보고 후 재질의 → "Walking/Running 중 하나를 이동 애니메이션으로 사용" 확정
+- `unity command create_animator_controller --path Assets/Animators/PlayerAnimator.controller` 생성
+- `unity command add_animator_parameter`로 `IsMoving`(Bool) 추가
+- `unity command add_animator_state`로 `Idle`(모션: `01a06fc6-...` 클립, 기본 상태), `Move`(모션: `Running` 클립) 추가
+- `unity command add_animator_transition`으로 `Idle→Move`(`IsMoving` true), `Move→Idle`(`IsMoving` false) 양방향 전환 추가 (hasExitTime=false, duration=0.1)
+- `eval`로 `PrefabUtility.InstantiatePrefab(PlayerWithAnim.fbx)`을 씬에 배치(`instantiate_prefab` 커맨드는 순수 `.prefab` 자산만 허용해 FBX 모델 프리팹은 거부됨 → eval로 우회)
+- 신규 오브젝트에 `set_serialized_field`로 위치(0,0,-1.41438)/스케일(1,1,1) 지정, `add_component`로 `Animator` 추가, `set_serialized_field`로 `m_Controller`에 `PlayerAnimator.controller` 연결, `attach_script`로 `PlayerToken` 부착
+- `Assets/Scripts/StageScripts/PlayerToken.cs` 수정: `Animator` 캐시 필드 추가(Awake에서 `GetComponent`, null 허용), `MoveRoutine` 시작 시 `animator.SetBool("IsMoving", true)`, 종료 시 `false`로 되돌리는 2줄만 추가 (기존 hop 이동 로직은 그대로 유지)
+- `unity command delete_gameobject`로 구 Capsule `Player` 삭제, `rename_gameobject`로 신규 오브젝트를 `Player`로 개명
+- `unity command set_serialized_field`로 `DungeonGridManager.playerToken`을 새 `Player`의 `PlayerToken`으로 재배선
+- `unity command recompile` → `recompile_status` 폴링 → `completed`
+### 검증
+- `unity command console --level error` → 새로 발생한 에러 없음 (전부 기존부터 있던 에디터 Inspector 노이즈이거나 앞선 시행착오의 잔여 로그)
+- `unity command editor_play` → `eval`로 `GameObject.Find("Player")`가 `PlayerToken`/`Animator`(controller=`PlayerAnimator`)를 가진 것과 시작 위치 `(0, 0.5, 0)` 확인 → `token.MoveTo(...)` 직접 호출 직후 `animator.GetBool("IsMoving")` == `true` 확인
+- 이동 완료 후 `IsMoving`이 `false`로 복귀하고 Animator가 `Idle` 상태로 전이되는지는 **확인하지 못함**: Play 모드 진입 후 Unity 창이 포커스를 잃으면서 Player Loop(`Time.frameCount`)가 완전히 멈춰 코루틴이 진행되지 않음(창을 다시 포그라운드로 올려도 재개되지 않음). 코드 자체는 기존에 검증된 hop 이동 루프에 `SetBool` 2줄만 추가한 것이라 별도 버그 가능성은 낮다고 판단하나, 사람이 직접 에디터에서 Play 후 타일 클릭으로 육안 확인 필요
+- `unity command run_tests --mode EditMode`(async) → 30/30 통과, 0.13초 (PlayerToken 변경은 EditMode 테스트 대상 로직이 아니라 회귀 없음만 확인)
+- `git diff --stat` → `StageScene.unity`(162+/51-), `PlayerToken.cs`(15줄), `Assets/Animators/PlayerAnimator.controller`(신규) 외 변경 없음
+### 실패와 수정
+- `unity command instantiate_prefab`은 `.prefab` 확장자 자산만 허용하고 FBX 모델은 "not a prefab asset"으로 거부함 → `eval`에서 `PrefabUtility.InstantiatePrefab(GameObject)`을 직접 호출해 우회 (FBX 모델도 유효한 프리팹 소스이므로 API 자체는 허용)
+- `eval` 코드에서 `Object.GetInstanceID()` 사용 시 이 Unity 버전(6000.5)에서 obsolete 경고가 컴파일 실패로 처리됨 → 로그/디버그용 인스턴스 식별에는 `GetInstanceID` 대신 다른 값(이름 등)을 사용할 것 → FAIL.md에 기록
+- Play 모드에서 Unity 에디터 창이 포커스를 잃으면 Player Loop가 완전히 정지해 CLI 자동화만으로는 코루틴 완료를 끝까지 관찰할 수 없었음 → FAIL.md에 기록

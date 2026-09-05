@@ -8,10 +8,19 @@ using UnityEngine;
 /// </summary>
 public class PlayerToken : MonoBehaviour
 {
+    private static readonly int IsMovingParam = Animator.StringToHash("IsMoving");
+
     [SerializeField] private float moveDuration = 0.35f;
     [SerializeField] private float hopHeight = 0.4f; // 타일 이동 시 살짝 튀는 느낌 (연출용)
 
     private Coroutine moveRoutine;
+    private Animator animator;
+
+    private void Awake()
+    {
+        // Animator가 없는 모델(그레이박스 Capsule 등)에서도 동작해야 하므로 null 허용.
+        animator = GetComponent<Animator>();
+    }
 
     /// <summary>
     /// 즉시 위치 이동 (던전 최초 생성 시 배치용).
@@ -22,7 +31,7 @@ public class PlayerToken : MonoBehaviour
     }
 
     /// <summary>
-    /// 부드럽게 타일 간 이동. 나중에 Animator의 이동 애니메이션 트리거로 교체 가능한 지점.
+    /// 부드럽게 타일 간 이동. Animator가 있으면 이동 시작/종료에 맞춰 "IsMoving"을 토글한다.
     /// </summary>
     public void MoveTo(Vector3 tilePosition)
     {
@@ -46,6 +55,8 @@ public class PlayerToken : MonoBehaviour
         Vector3 startPos = transform.position;
         float elapsed = 0f;
 
+        if (animator != null) animator.SetBool(IsMovingParam, true);
+
         while (elapsed < moveDuration)
         {
             elapsed += Time.deltaTime;
@@ -59,5 +70,7 @@ public class PlayerToken : MonoBehaviour
         }
 
         transform.position = targetPos;
+
+        if (animator != null) animator.SetBool(IsMovingParam, false);
     }
 }
